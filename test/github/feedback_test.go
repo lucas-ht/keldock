@@ -75,17 +75,17 @@ func TestDurableFeedbackRecoversRemoteEffectsWithoutTheRunner(t *testing.T) {
 			if r.Method == "POST" {
 				comment = read()
 				commentCreates++
-				write(map[string]int64{"id": 301})
+				write(map[string]int64{"id": 6456064386})
 			} else {
 				items := []map[string]any{}
 				if comment != nil {
-					items = append(items, map[string]any{"id": 301, "body": comment["body"], "user": map[string]string{"login": "keldock-test[bot]", "type": "Bot"}})
+					items = append(items, map[string]any{"id": 6456064386, "body": comment["body"], "user": map[string]string{"login": "keldock-test[bot]", "type": "Bot"}})
 				}
 				write(items)
 			}
-		case strings.HasSuffix(r.URL.Path, "/issues/comments/301"):
+		case strings.HasSuffix(r.URL.Path, "/issues/comments/6456064386"):
 			comment = read()
-			write(map[string]int64{"id": 301})
+			write(map[string]int64{"id": 6456064386})
 		default:
 			return false
 		}
@@ -124,6 +124,14 @@ func TestDurableFeedbackRecoversRemoteEffectsWithoutTheRunner(t *testing.T) {
 		}
 	}
 	process()
+	var persistedComment int64
+	var commentLeaseReleased bool
+	if err := f.service.Product.Pool().QueryRow(f.ctx, `SELECT comment_id,lease_until IS NULL AND lease_token='' FROM github_pr_comments WHERE organization_id=$1`, f.users.Organization).Scan(&persistedComment, &commentLeaseReleased); err != nil {
+		t.Fatal(err)
+	}
+	if persistedComment != 6456064386 || !commentLeaseReleased {
+		t.Fatal("large GitHub comment ID was not persisted with its lease released")
+	}
 	if checkCreates != 1 || deployCreates != 1 || commentCreates != 1 {
 		t.Fatal("lost response duplicated a remote effect")
 	}

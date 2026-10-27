@@ -40,7 +40,7 @@ func (service *Service) ProcessFeedback(ctx context.Context) (bool, error) {
 	return true, err
 }
 
-func (service *Service) deliverFeedback(ctx context.Context, item *store.Feedback, view feedback.View) error {
+func (service *Service) deliverFeedback(ctx context.Context, item *store.Feedback, view feedback.View) (err error) {
 	source := item.Release.Source
 	grant, err := service.AuthorizeRepository(ctx, source.RepositoryID, source.OwnerID, source.Repository)
 	if err != nil {
@@ -95,7 +95,7 @@ func (service *Service) deliverFeedback(ctx context.Context, item *store.Feedbac
 	defer func() {
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
-		_ = service.Repository.FinishComment(cleanup, grant.ID, source.PullRequest, id, item.Lease)
+		err = errors.Join(err, service.Repository.FinishComment(cleanup, grant.ID, source.PullRequest, id, item.Lease))
 	}()
 	current, err := service.Repository.CommentCurrent(ctx, *item)
 	if err != nil || !current {

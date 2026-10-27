@@ -104,7 +104,7 @@ RETURNING comment_id`, repository.Organization, repo, number, lease).Scan(&id)
 
 // FinishComment persists a recovered/created ID and releases only the current lease.
 func (repository *Repository) FinishComment(ctx context.Context, repo, number, id int64, lease string) error {
-	result, err := repository.pool.Exec(ctx, `UPDATE github_pr_comments SET comment_id=CASE WHEN $4>0 THEN $4 ELSE comment_id END,lease_token='',lease_until=NULL WHERE organization_id=$1 AND repository_id=$2 AND pull_request=$3 AND lease_token=$5`, repository.Organization, repo, number, id, lease)
+	result, err := repository.pool.Exec(ctx, `UPDATE github_pr_comments SET comment_id=CASE WHEN $4::bigint>0 THEN $4::bigint ELSE comment_id END,lease_token='',lease_until=NULL WHERE organization_id=$1 AND repository_id=$2 AND pull_request=$3 AND lease_token=$5`, repository.Organization, repo, number, id, lease)
 	if err == nil && result.RowsAffected() != 1 {
 		return access.ErrConflict
 	}
