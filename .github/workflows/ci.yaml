@@ -29,3 +29,21 @@ jobs:
         run: task bootstrap
       - name: Validate repository
         run: task doctor
+
+  runtime:
+    needs: doctor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up pinned tools
+        uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: "2026.10.19"
+      - name: Install locked dependencies
+        run: task bootstrap
+      - name: Verify disposable runtime
+        run: task local:test
