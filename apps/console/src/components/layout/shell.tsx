@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import {
   Boxes,
   Folder,
+  GitBranch,
   LayoutGrid,
   Menu,
   Moon,
@@ -38,6 +39,12 @@ const navigation = [
   { href: "/projects", label: "Projects", icon: Folder },
   { href: "/clusters", label: "Clusters", icon: Boxes },
   { href: "/people", label: "People", icon: Users, admin: true },
+  {
+    href: "/settings/github",
+    label: "GitHub delivery",
+    icon: GitBranch,
+    admin: true,
+  },
   { href: "/settings/mcp", label: "MCP access", icon: Plug },
 ];
 function Navigation({
