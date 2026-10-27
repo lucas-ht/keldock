@@ -21,6 +21,9 @@ registries:
       "keldock-m1-registry:5000":
         endpoint:
           - "http://keldock-m1-registry:5000"
+      "keldock-m1-private-registry:5000":
+        endpoint:
+          - "http://keldock-m1-private-registry:5000"
 options:
   k3d:
     wait: true

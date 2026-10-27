@@ -14,7 +14,11 @@ import (
 
 // Reconcile registers one approved bundle and prunes retired component registrations.
 // Calls are serialized by the agent; every object also rejects older generations and owner conflicts.
-func (registrar *Registrar) Reconcile(ctx context.Context, selection compiler.Selection, definition v1.Application, bundle string) error {
+func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedDeployment) error {
+	selection, definition, bundle := desired.Selection, desired.Definition, desired.Bundle
+	if !v1.ValidName(desired.Operation.OrganizationID) || !v1.ValidName(desired.Operation.ProjectID) {
+		return fmt.Errorf("approved project scope required")
+	}
 	if err := definition.Validate(); err != nil {
 		return err
 	}
@@ -25,14 +29,27 @@ func (registrar *Registrar) Reconcile(ctx context.Context, selection compiler.Se
 	if err != nil || repository != registrar.Repository {
 		return fmt.Errorf("bundle outside enrolled registry scope")
 	}
-	if err := registrar.register(ctx, selection); err != nil {
+	plan, err := registrar.pullPlan(desired)
+	if err != nil {
+		return err
+	}
+	if err := registrar.register(ctx, selection, len(plan.workloads) > 0); err != nil {
+		return err
+	}
+	if err := registrar.projectPullSecrets(ctx, selection, plan); err != nil {
 		return err
 	}
 	source := map[string]any{"apiVersion": "source.toolkit.fluxcd.io/v1", "kind": "OCIRepository", "metadata": metadata("keldock-source", selection),
 		"spec": map[string]any{"interval": "1m", "url": "oci://" + repository, "ref": map[string]any{"digest": digest}, "insecure": registrar.PlainHTTP, "provider": "generic", "suspend": false,
 			"layerSelector": map[string]any{"mediaType": artifacts.LayerMediaType, "operation": "extract"}}}
+	if len(plan.bundle) > 0 {
+		source["spec"].(map[string]any)["secretRef"] = map[string]any{"name": "keldock-bundle-pull"}
+	}
 	if err := registrar.apply(ctx, source, selection.EnvironmentID, selection.Generation); err != nil {
 		return fmt.Errorf("register source: %w", err)
+	}
+	if err := registrar.removeUnusedPullSecrets(ctx, selection, plan); err != nil {
+		return err
 	}
 	order, err := definition.Order()
 	if err != nil {
@@ -49,6 +66,13 @@ func (registrar *Registrar) Reconcile(ctx context.Context, selection compiler.Se
 				`dep.metadata.labels['keldock.io/deployment'] == self.metadata.labels['keldock.io/deployment'] && has(dep.status.conditions) && dep.status.conditions.exists(c, c.type == 'Ready' && c.status == 'True') && dep.metadata.generation == dep.status.observedGeneration && has(dep.status.lastAppliedRevision) && dep.status.lastAppliedRevision.endsWith('%s')`, digest)})
 		}
 		spec["dependsOn"] = dependencies
+		patches, err := pullPatches(name, definition.Components[name], desired.Images[name], selection, plan)
+		if err != nil {
+			return err
+		}
+		if len(patches) > 0 {
+			spec["patches"] = patches
+		}
 		object := map[string]any{"apiVersion": "kustomize.toolkit.fluxcd.io/v1", "kind": "Kustomization", "metadata": metadata("keldock-"+name, selection), "spec": spec}
 		if err := registrar.apply(ctx, object, selection.EnvironmentID, selection.Generation); err != nil {
 			return fmt.Errorf("register component %s: %w", name, err)

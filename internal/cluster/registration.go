@@ -20,7 +20,7 @@ func metadata(name string, selection compiler.Selection) metav1.ObjectMeta {
 		Annotations: map[string]string{"keldock.io/generation": strconv.FormatInt(selection.Generation, 10)}}
 }
 
-func (registrar *Registrar) register(ctx context.Context, selection compiler.Selection) error {
+func (registrar *Registrar) register(ctx context.Context, selection compiler.Selection, privateImages bool) error {
 	meta := metadata(selection.Namespace, selection)
 	meta.Namespace = ""
 	meta.Labels["pod-security.kubernetes.io/enforce"] = "restricted"
@@ -29,8 +29,15 @@ func (registrar *Registrar) register(ctx context.Context, selection compiler.Sel
 	if err := registrar.apply(ctx, namespace, selection.EnvironmentID, selection.Generation); err != nil {
 		return fmt.Errorf("register namespace: %w", err)
 	}
+	pullSecrets := []map[string]string{}
+	if privateImages {
+		pullSecrets = append(pullSecrets, map[string]string{"name": "keldock-image-pull"})
+	}
+	workload := map[string]any{"apiVersion": "v1", "kind": "ServiceAccount", "metadata": metadata("workload", selection), "automountServiceAccountToken": false, "imagePullSecrets": pullSecrets}
+	if err := registrar.apply(ctx, workload, selection.EnvironmentID, selection.Generation); err != nil {
+		return fmt.Errorf("register workload identity: %w", err)
+	}
 	objects := []any{
-		&corev1.ServiceAccount{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"}, ObjectMeta: metadata("workload", selection), AutomountServiceAccountToken: ptr.To(false)},
 		&corev1.ServiceAccount{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"}, ObjectMeta: metadata("reconciler", selection), AutomountServiceAccountToken: ptr.To(false)},
 		&rbacv1.Role{TypeMeta: metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"}, ObjectMeta: metadata("keldock-reconciler", selection), Rules: []rbacv1.PolicyRule{
 			{APIGroups: []string{"apps"}, Resources: []string{"deployments"}, Verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}},

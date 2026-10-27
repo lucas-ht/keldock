@@ -22,6 +22,18 @@ services:
       timeout: 2s
       retries: 30
 
+  private-registry:
+    image: registry:3.0.0@sha256:6c5666b861f3505b116bb9aa9b25175e71210414bd010d92035ff64018f9457e
+    container_name: keldock-m1-private-registry
+    ports: ["127.0.0.1:5011:5000"]
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: keldock-local
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    volumes:
+      - "../../.local/registry-auth/server:/auth:ro"
+      - "private-registry:/var/lib/registry"
+
 networks:
   default:
     name: keldock-m1
@@ -29,3 +41,4 @@ networks:
 volumes:
   registry:
   postgres:
+  private-registry:

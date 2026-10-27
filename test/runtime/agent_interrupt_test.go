@@ -16,7 +16,7 @@ import (
 
 type waitingDriver struct{ started, stopped chan struct{} }
 
-func (driver waitingDriver) Reconcile(ctx context.Context, _ v1.Placement, _ v1.Application, _ string) error {
+func (driver waitingDriver) Reconcile(ctx context.Context, _ v1.ProjectedDeployment) error {
 	close(driver.started)
 	<-ctx.Done()
 	close(driver.stopped)

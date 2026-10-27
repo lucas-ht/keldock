@@ -74,6 +74,7 @@ func run(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
+		driver.CredentialsFile = settings.RegistryCredentialsFile
 		dependencies, err := driver.Inspect(ctx)
 		if err != nil {
 			return err

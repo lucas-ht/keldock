@@ -25,9 +25,10 @@ var ErrOwnership = errors.New("object has another owner or a newer desired gener
 
 // Registrar owns protected substrate and Flux configuration, never application builds.
 type Registrar struct {
-	client     dynamic.Interface
-	Repository string
-	PlainHTTP  bool
+	client          dynamic.Interface
+	Repository      string
+	PlainHTTP       bool
+	CredentialsFile string
 }
 
 var resources = map[string]schema.GroupVersionResource{
@@ -38,6 +39,7 @@ var resources = map[string]schema.GroupVersionResource{
 	"Ingress":        {Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"},
 	"Namespace":      {Version: "v1", Resource: "namespaces"},
 	"ServiceAccount": {Version: "v1", Resource: "serviceaccounts"},
+	"Secret":         {Version: "v1", Resource: "secrets"},
 	"ResourceQuota":  {Version: "v1", Resource: "resourcequotas"},
 	"Role":           {Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"},
 	"RoleBinding":    {Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "rolebindings"},

@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -62,9 +63,15 @@ async function build(revision) {
 }
 const image = await build("v1");
 const updatedImage = await build("v2");
+const privateSource = await build(`private-${randomBytes(6).toString("hex")}`);
+const privateImage = execFileSync(
+  "go",
+  ["run", "./tooling/fixtures/registry", "publish", privateSource],
+  { cwd: root, encoding: "utf8" },
+).trim();
 writeFileSync(
   ".local/fixture-image.json",
-  JSON.stringify({ image, updatedImage }),
+  JSON.stringify({ image, updatedImage, privateImage }),
 );
 process.stdout.write(
   "Synthetic CI fixture image published by the local test harness.\n",

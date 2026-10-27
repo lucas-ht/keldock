@@ -14,7 +14,7 @@ import (
 
 type recordingDriver struct{ mutations int }
 
-func (driver *recordingDriver) Reconcile(context.Context, v1.Placement, v1.Application, string) error {
+func (driver *recordingDriver) Reconcile(context.Context, v1.ProjectedDeployment) error {
 	driver.mutations++
 	return nil
 }

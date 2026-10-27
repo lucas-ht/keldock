@@ -51,6 +51,7 @@ if (networkExists) {
 process.stdout.write(
   "Local target: Docker project/network keldock-m1; cluster/context k3d-keldock-m1; no cloud account/backend.\n",
 );
+run("go", ["run", "./tooling/fixtures/registry"]);
 run("docker", [
   "compose",
   "--env-file",

@@ -55,6 +55,10 @@ func selectedEnvironment() compiler.Selection {
 	return compiler.Selection{EnvironmentID: "env-" + id, DeploymentID: "dep-" + id, Generation: 1, Namespace: "ke-" + id, Hostname: "preview-" + id + ".keldock.test"}
 }
 
+func projected(selection compiler.Selection, input v1.SubmitRelease, bundle string) v1.ProjectedDeployment {
+	return v1.ProjectedDeployment{Operation: v1.Operation{Scope: v1.Scope{OrganizationID: "local", ProjectID: input.ProjectID}}, Selection: selection, Definition: input.Definition, Images: input.Images, Bundle: bundle}
+}
+
 func publisher(t *testing.T) *artifacts.Publisher {
 	t.Helper()
 	config := configuration(t)
@@ -101,7 +105,7 @@ func waitState(t *testing.T, ctx context.Context, registrar *cluster.Registrar, 
 	var last v1.Observation
 	var lastError error
 	for time.Now().Before(deadline) && ctx.Err() == nil {
-		if err := registrar.Reconcile(ctx, selection, input.Definition, bundle); err != nil {
+		if err := registrar.Reconcile(ctx, projected(selection, input, bundle)); err != nil {
 			lastError = err
 			time.Sleep(time.Second)
 			continue
@@ -184,7 +188,8 @@ func route(t *testing.T, ctx context.Context, selection compiler.Selection) map[
 func cleanEnvironment(t *testing.T, ctx context.Context, registrar *cluster.Registrar, selection compiler.Selection) {
 	t.Helper()
 	selection.Generation++
-	for deadline := time.Now().Add(60 * time.Second); time.Now().Before(deadline); {
+	// Flux first waits for workload termination, then namespace GC completes.
+	for deadline := time.Now().Add(120 * time.Second); time.Now().Before(deadline) && ctx.Err() == nil; {
 		done, err := registrar.Remove(ctx, selection)
 		if err != nil {
 			t.Error(fmt.Errorf("environment cleanup: %w", err))

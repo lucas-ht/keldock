@@ -13,7 +13,7 @@ import (
 
 // Driver is the trusted cluster boundary; app workloads remain owned by Flux.
 type Driver interface {
-	Reconcile(context.Context, v1.Placement, v1.Application, string) error
+	Reconcile(context.Context, v1.ProjectedDeployment) error
 	Observe(context.Context, v1.Placement, v1.Application, map[string]string, string) (v1.Observation, error)
 	Remove(context.Context, v1.Placement) (bool, error)
 	Suspend(context.Context, v1.Placement) error
@@ -70,7 +70,7 @@ func (agent Agent) project(ctx context.Context, desired v1.ProjectedDeployment) 
 	if desired.Operation.Kind != "deploy" || desired.Bundle == "" {
 		return nil
 	}
-	if err := agent.Driver.Reconcile(ctx, desired.Selection, desired.Definition, desired.Bundle); err != nil {
+	if err := agent.Driver.Reconcile(ctx, desired); err != nil {
 		return err
 	}
 	report, err := agent.Driver.Observe(ctx, desired.Selection, desired.Definition, desired.Images, desired.Bundle)

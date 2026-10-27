@@ -34,7 +34,7 @@ func TestFluxOCIContract(t *testing.T) {
 		cleanEnvironment(t, cleanup, driver, selection)
 	})
 	bundle := publishBundle(t, ctx, input, selection)
-	if err := driver.Reconcile(ctx, selection, input.Definition, bundle); err != nil {
+	if err := driver.Reconcile(ctx, projected(selection, input, bundle)); err != nil {
 		t.Fatal(err)
 	}
 	report := waitState(t, ctx, driver, selection, input, bundle, "ready")
@@ -78,14 +78,14 @@ func TestFluxOCIContract(t *testing.T) {
 	apiComponent.Env["BROKEN"] = "true"
 	input.Definition.Components["api"] = apiComponent
 	bundle = publishBundle(t, ctx, input, selection)
-	if err := driver.Reconcile(ctx, selection, input.Definition, bundle); err != nil {
+	if err := driver.Reconcile(ctx, projected(selection, input, bundle)); err != nil {
 		t.Fatal(err)
 	}
 	immediate, err := driver.Observe(ctx, selection, input.Definition, input.Images, bundle)
 	if err != nil || immediate.State == "ready" {
 		t.Fatalf("old healthy revision satisfied new selection: %+v %v", immediate, err)
 	}
-	if err := driver.Reconcile(ctx, previous, input.Definition, bundle); !errors.Is(err, cluster.ErrOwnership) {
+	if err := driver.Reconcile(ctx, projected(previous, input, bundle)); !errors.Is(err, cluster.ErrOwnership) {
 		t.Fatalf("older generation replaced current registration: %v", err)
 	}
 	waitState(t, ctx, driver, selection, input, bundle, "failed")
@@ -93,7 +93,7 @@ func TestFluxOCIContract(t *testing.T) {
 	selection.Generation++
 	selection.DeploymentID = selectedEnvironment().DeploymentID
 	bundle = publishBundle(t, ctx, input, selection)
-	if err := driver.Reconcile(ctx, selection, input.Definition, bundle); err != nil {
+	if err := driver.Reconcile(ctx, projected(selection, input, bundle)); err != nil {
 		t.Fatal(err)
 	}
 	waitState(t, ctx, driver, selection, input, bundle, "ready")
@@ -102,7 +102,7 @@ func TestFluxOCIContract(t *testing.T) {
 	selection.Generation++
 	selection.DeploymentID = selectedEnvironment().DeploymentID
 	bundle = publishBundle(t, ctx, input, selection)
-	if err := driver.Reconcile(ctx, selection, input.Definition, bundle); err != nil {
+	if err := driver.Reconcile(ctx, projected(selection, input, bundle)); err != nil {
 		t.Fatal(err)
 	}
 	waitState(t, ctx, driver, selection, input, bundle, "ready")
@@ -113,7 +113,7 @@ func TestFluxOCIContract(t *testing.T) {
 	selection.Generation++
 	selection.DeploymentID = selectedEnvironment().DeploymentID
 	bundle = publishBundle(t, ctx, input, selection)
-	if err := driver.Reconcile(ctx, selection, input.Definition, bundle); err != nil {
+	if err := driver.Reconcile(ctx, projected(selection, input, bundle)); err != nil {
 		t.Fatal(err)
 	}
 	waitState(t, ctx, driver, selection, input, bundle, "ready")
@@ -122,7 +122,7 @@ func TestFluxOCIContract(t *testing.T) {
 	}
 	foreign := selection
 	foreign.Namespace = "keldock-system"
-	if err := driver.Reconcile(ctx, foreign, input.Definition, bundle); !errors.Is(err, cluster.ErrOwnership) {
+	if err := driver.Reconcile(ctx, projected(foreign, input, bundle)); !errors.Is(err, cluster.ErrOwnership) {
 		t.Fatalf("unowned namespace was adopted: %v", err)
 	}
 	other := selectedEnvironment()
@@ -132,7 +132,7 @@ func TestFluxOCIContract(t *testing.T) {
 		cleanEnvironment(t, cleanup, driver, other)
 	})
 	otherBundle := publishBundle(t, ctx, input, other)
-	if err := driver.Reconcile(ctx, other, input.Definition, otherBundle); err != nil {
+	if err := driver.Reconcile(ctx, projected(other, input, otherBundle)); err != nil {
 		t.Fatal(err)
 	}
 	waitState(t, ctx, driver, other, input, otherBundle, "ready")
