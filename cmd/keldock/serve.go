@@ -1,0 +1,121 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/lucas-ht/keldock/internal/admission"
+	"github.com/lucas-ht/keldock/internal/artifacts"
+	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
+	"github.com/lucas-ht/keldock/internal/controlplane"
+	"github.com/lucas-ht/keldock/internal/storage/postgres"
+	"golang.org/x/sync/errgroup"
+	"k8s.io/apimachinery/pkg/util/validation"
+)
+
+func serve(ctx context.Context, settings controlSettings, migrate bool) error {
+	if !v1.ValidName(settings.Organization) || !v1.ValidName(settings.Cluster) || len(validation.IsDNS1123Subdomain(settings.Domain)) != 0 || settings.Listen == "" || len(settings.Projects) == 0 || len(settings.Projects) > 32 {
+		return fmt.Errorf("invalid installation, domain, listen address or project configuration")
+	}
+	if settings.RegistryPlainHTTP && !settings.Development {
+		return fmt.Errorf("plain HTTP registry is a development-only profile")
+	}
+	operator, err := secret(settings.OperatorTokenFile)
+	if err != nil {
+		return err
+	}
+	agentToken, err := secret(settings.AgentTokenFile)
+	if err != nil {
+		return err
+	}
+	webhookSecret, err := secret(settings.WebhookSecretFile)
+	if err != nil {
+		return err
+	}
+	if operator == agentToken {
+		return fmt.Errorf("operator and agent require distinct credentials")
+	}
+	store, err := postgres.Open(ctx, settings.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	if migrate {
+		if err := store.Migrate(ctx); err != nil {
+			return err
+		}
+	}
+	projects := map[string]v1.Project{}
+	owners := map[int64]int64{}
+	var policies []admission.RepositoryPolicy
+	for _, item := range settings.Projects {
+		if _, exists := projects[item.ID]; exists {
+			return fmt.Errorf("duplicate configured project")
+		}
+		project := v1.Project{Scope: v1.Scope{OrganizationID: settings.Organization, ProjectID: item.ID}, Name: item.Name, RepositoryID: item.RepositoryID, ClusterID: settings.Cluster}
+		if err := store.SeedProject(ctx, project); err != nil {
+			return err
+		}
+		policy, err := settings.policy(item)
+		if err != nil {
+			return err
+		}
+		policies = append(policies, policy)
+		projects[item.ID] = project
+		owners[item.RepositoryID] = item.OwnerID
+	}
+	verifier, err := admission.NewGitHub(ctx, settings.GitHubIssuer, settings.GitHubAudience, policies, settings.Development)
+	if err != nil {
+		return err
+	}
+	var password string
+	if settings.RegistryPasswordFile != "" {
+		password, err = credential(settings.RegistryPasswordFile, 1)
+		if err != nil {
+			return err
+		}
+	}
+	publisher, err := artifacts.NewPublisher(artifacts.RegistryConfig{PushRepository: settings.RegistryPush, PullRepository: settings.RegistryPull, PlainHTTP: settings.RegistryPlainHTTP, Username: settings.RegistryUsername, Password: password})
+	if err != nil {
+		return err
+	}
+	api := &controlplane.API{Store: store, GitHub: verifier, Organization: settings.Organization, Cluster: settings.Cluster, Projects: projects, RepositoryOwners: owners,
+		OperatorToken: operator, AgentToken: agentToken, WebhookSecret: []byte(webhookSecret), Domain: settings.Domain}
+	server := &http.Server{Addr: settings.Listen, Handler: api.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, MaxHeaderBytes: 16 * 1024}
+	group, active := errgroup.WithContext(ctx)
+	group.Go(func() error {
+		return (controlplane.Worker{Store: store, Publisher: publisher, Organization: settings.Organization}).Run(active)
+	})
+	group.Go(func() error { return serveHTTP(active, server) })
+	slog.Info("experimental Keldock control plane starting", "listen", settings.Listen, "organization", settings.Organization, "cluster", settings.Cluster)
+	return group.Wait()
+}
+
+func serveHTTP(ctx context.Context, server *http.Server) error {
+	finished := make(chan error, 1)
+	go func() { finished <- server.ListenAndServe() }()
+	select {
+	case err := <-finished:
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	case <-ctx.Done():
+	}
+	shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdown); err != nil {
+		if closeErr := server.Close(); closeErr != nil {
+			return closeErr
+		}
+	}
+	err := <-finished
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
+}
