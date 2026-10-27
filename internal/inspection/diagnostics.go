@@ -12,7 +12,7 @@ import (
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 )
 
-var sensitiveText = regexp.MustCompile(`(?i)(bearer\s+[^\s,;]+|(?:password|secret|token|authorization|api[_-]?key)\s*[=:]\s*[^\s,;]+|[a-z][a-z0-9+.-]*://[^\s/@]+:[^\s/@]+@|\b(?:kda_|kma_|kmr_|kds_|kin_)[a-zA-Z0-9_-]+)`)
+var sensitiveText = regexp.MustCompile(`(?i)(bearer\s+[^\s,;]+|(?:password|secret|token|authorization|api[_-]?key)\s*[=:]\s*[^\s,;]+|[a-z][a-z0-9+.-]*://[^\s/@]+:[^\s/@]+@|\b(?:kda_|kma_|kmr_|kds_|kdi_|kmc_|kin_)[a-zA-Z0-9_-]+)`)
 
 func redactor(release v1.SubmitRelease) func(string) string {
 	values := []string{}

@@ -34,6 +34,19 @@ func (repository *Repository) CreateAuthorization(ctx context.Context, input Aut
 	if err != nil || !approvedRedirect(client, input.RedirectURI) {
 		return "", access.ErrDenied
 	}
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, repository.users.Organization+"/oauth/"+client.ID); err != nil {
+		return "", err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM access_oauth_requests WHERE client_id=$1 AND expires_at<now()`, client.ID); err != nil {
+		return "", err
+	}
+	var pending int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM access_oauth_requests WHERE client_id=$1 AND consumed_at IS NULL`, client.ID).Scan(&pending); err != nil {
+		return "", err
+	}
+	if pending >= 20 {
+		return "", access.ErrLimited
+	}
 	id := access.NewID("authreq")
 	_, err = tx.Exec(ctx, `INSERT INTO access_oauth_requests (id,client_id,redirect_uri,state,challenge,resource,expires_at) VALUES ($1,$2,$3,$4,$5,$6,now()+interval '5 minutes')`, id, client.ID, input.RedirectURI, input.State, input.Challenge, input.Resource)
 	if err != nil {

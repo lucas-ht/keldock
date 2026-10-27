@@ -139,3 +139,53 @@ func TestMCPAuthorizationBindingRefreshAndRevocation(t *testing.T) {
 		t.Fatal("endpoint disable left active authorization")
 	}
 }
+
+func TestPendingOAuthRequestsAreBoundedAndExpire(t *testing.T) {
+	store, users, ctx := identityDatabase(t)
+	principal, _, _ := administrator(t, users, ctx)
+	mcp, err := mcpidentity.NewRepository(store.Pool(), users, "https://keldock.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := mcp.Seed(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mcp.SetEnabled(ctx, principal, true, 1); err != nil {
+		t.Fatal(err)
+	}
+	client, err := mcp.Register(ctx, "Bounded client", []string{"http://127.0.0.1:39157/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256([]byte(strings.Repeat("v", 64)))
+	input := mcpidentity.AuthorizationInput{ClientID: client.ID, RedirectURI: client.RedirectURIs[0], Resource: mcp.Resource, Scope: mcpidentity.ReadScope, ResponseType: "code", State: "pending-test", Challenge: base64.RawURLEncoding.EncodeToString(digest[:]), ChallengeMethod: "S256"}
+	var first string
+	for index := range 20 {
+		id, err := mcp.CreateAuthorization(ctx, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if index == 0 {
+			first = id
+		}
+	}
+	if _, err := mcp.CreateAuthorization(ctx, input); !errors.Is(err, access.ErrLimited) {
+		t.Fatal("public authorization could create unbounded pending rows")
+	}
+	if _, err := mcp.Consent(ctx, principal, first, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mcp.CreateAuthorization(ctx, input); err != nil {
+		t.Fatal("consumed requests still occupied the pending budget")
+	}
+	if _, err := store.Pool().Exec(ctx, `UPDATE access_oauth_requests SET expires_at=now()-interval '1 second' WHERE client_id=$1`, client.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mcp.CreateAuthorization(ctx, input); err != nil {
+		t.Fatal("expired requests still occupied the pending budget")
+	}
+	var count int
+	if err := store.Pool().QueryRow(ctx, `SELECT count(*) FROM access_oauth_requests WHERE client_id=$1`, client.ID).Scan(&count); err != nil || count != 1 {
+		t.Fatal("expired request metadata was not reclaimed")
+	}
+}

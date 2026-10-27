@@ -61,9 +61,12 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 		projects[item.ID] = project
 		owners[item.RepositoryID] = item.OwnerID
 	}
-	verifier, err := admission.NewGitHub(ctx, settings.GitHubIssuer, settings.GitHubAudience, policies, settings.Development)
-	if err != nil {
-		return err
+	var verifier *admission.GitHub
+	if settings.GitHubIssuer != "" || settings.GitHubAudience != "" {
+		verifier, err = admission.NewGitHub(ctx, settings.GitHubIssuer, settings.GitHubAudience, policies, settings.Development)
+		if err != nil {
+			return err
+		}
 	}
 	var password string
 	if settings.RegistryPasswordFile != "" {

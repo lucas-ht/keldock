@@ -124,6 +124,11 @@ func revokeReplay(ctx context.Context, tx pgx.Tx, organization, grant, event str
 
 // Refresh rotates refresh credentials; reuse revokes the whole connection family.
 func (repository *Repository) Refresh(ctx context.Context, client, resource, refresh string) (TokenPair, error) {
+	// RFC 8707 permits an omitted resource on refresh. The stored grant remains
+	// bound to this exact installation; an explicit different resource is denied.
+	if resource == "" {
+		resource = repository.Resource
+	}
 	if resource != repository.Resource || len(refresh) > 128 {
 		return TokenPair{}, access.ErrInvalid
 	}

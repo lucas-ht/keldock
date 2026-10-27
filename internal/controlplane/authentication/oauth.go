@@ -2,12 +2,15 @@ package authentication
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/lucas-ht/keldock/internal/access"
 
 	"github.com/lucas-ht/keldock/internal/access/mcpidentity"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
@@ -104,6 +107,10 @@ func (service *Service) authorize(w http.ResponseWriter, request *http.Request) 
 		return
 	}
 	id, err := service.MCP.CreateAuthorization(request.Context(), mcpidentity.AuthorizationInput{ClientID: query.Get("client_id"), RedirectURI: query.Get("redirect_uri"), State: query.Get("state"), Challenge: query.Get("code_challenge"), ChallengeMethod: query.Get("code_challenge_method"), Resource: query.Get("resource"), Scope: query.Get("scope"), ResponseType: query.Get("response_type")})
+	if errors.Is(err, access.ErrLimited) {
+		oauthError(w, http.StatusTooManyRequests, "temporarily_unavailable")
+		return
+	}
 	if err != nil {
 		oauthError(w, http.StatusBadRequest, "invalid_request")
 		return

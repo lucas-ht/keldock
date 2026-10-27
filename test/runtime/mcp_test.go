@@ -18,12 +18,18 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
+	"golang.org/x/oauth2"
 )
 
 func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	fixture := newAPI(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
+	restricted := v1.Project{Scope: v1.Scope{OrganizationID: fixture.scope.OrganizationID, ProjectID: "restricted"}, Name: "Restricted", RepositoryID: 43, ClusterID: "keldock-m1"}
+	if err := fixture.store.SeedProject(ctx, restricted); err != nil {
+		t.Fatal(err)
+	}
+	fixture.api.Projects["restricted"] = restricted
 	principal, _, err := fixture.api.Security.Users.Session(ctx, fixture.session)
 	if err != nil {
 		t.Fatal(err)
@@ -47,6 +53,11 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	oauth, err := auth.NewAuthorizationCodeHandler(&auth.AuthorizationCodeHandlerConfig{
+		NewTokenSource: func(ctx context.Context, config *oauth2.Config, token *oauth2.Token) (oauth2.TokenSource, error) {
+			expired := *token
+			expired.Expiry = time.Now().Add(-time.Minute)
+			return config.TokenSource(ctx, &expired), nil
+		},
 		RedirectURL:                     "http://127.0.0.1:39157/callback",
 		DynamicClientRegistrationConfig: &auth.DynamicClientRegistrationConfig{Metadata: &oauthex.ClientRegistrationMetadata{ClientName: "Keldock SDK acceptance", RedirectURIs: []string{"http://127.0.0.1:39157/callback"}, Scope: mcpidentity.ReadScope, GrantTypes: []string{"authorization_code", "refresh_token"}, TokenEndpointAuthMethod: "none"}},
 		AuthorizationCodeFetcher: func(ctx context.Context, args *auth.AuthorizationArgs) (*auth.AuthorizationResult, error) {
@@ -88,6 +99,11 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = session.Close() }()
+	var refreshes int
+	if err := fixture.store.Pool().QueryRow(ctx, `SELECT count(*) FROM access_mcp_tokens t JOIN access_mcp_grants g ON g.id=t.grant_id JOIN access_mcp_clients c ON c.id=g.client_id WHERE c.organization_id=$1 AND t.kind='refresh'`, fixture.scope.OrganizationID).Scan(&refreshes); err != nil || refreshes < 2 {
+		t.Fatalf("SDK did not complete token refresh: %d %v", refreshes, err)
+	}
+
 	tools, err := session.ListTools(ctx, nil)
 	if err != nil || len(tools.Tools) != 5 {
 		t.Fatalf("tools: %v %v", tools, err)
@@ -112,11 +128,14 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 		if strings.Contains(string(data), "fixture-secret-never-returned") || strings.Contains(string(data), "password=hidden") || strings.Contains(string(data), "PRIVATE_VALUE") {
 			t.Fatal("MCP leaked private application configuration")
 		}
+		if call.Name == "list_projects" && strings.Contains(string(data), "restricted") {
+			t.Fatal("MCP read inherited its administrator owner's broader project access")
+		}
 		if call.Name == "get_diagnostics" && (!strings.Contains(string(data), `"stale":true`) || !strings.Contains(string(data), "[redacted]")) {
 			t.Fatalf("diagnostic freshness/redaction absent: %s", data)
 		}
 	}
-	denied, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "list_environments", Arguments: map[string]any{"projectId": "other"}})
+	denied, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "list_environments", Arguments: map[string]any{"projectId": "restricted"}})
 	if err != nil || !denied.IsError {
 		t.Fatalf("cross-project scope was accepted: %v", err)
 	}
