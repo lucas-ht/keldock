@@ -88,16 +88,16 @@ func NewGitHub(ctx context.Context, issuer, audience string, policies []Reposito
 }
 
 type claims struct {
-	RepositoryID     string `json:"repository_id"`
-	OwnerID          string `json:"repository_owner_id"`
-	Repository       string `json:"repository"`
-	Commit           string `json:"sha"`
-	Ref              string `json:"ref"`
-	Event            string `json:"event_name"`
-	WorkflowRef      string `json:"workflow_ref"`
-	ReusableWorkflow string `json:"job_workflow_ref"`
-	RunID            string `json:"run_id"`
-	RunAttempt       string `json:"run_attempt"`
+	RepositoryID   string `json:"repository_id"`
+	OwnerID        string `json:"repository_owner_id"`
+	Repository     string `json:"repository"`
+	Commit         string `json:"sha"`
+	Ref            string `json:"ref"`
+	Event          string `json:"event_name"`
+	WorkflowRef    string `json:"workflow_ref"`
+	JobWorkflowRef string `json:"job_workflow_ref"`
+	RunID          string `json:"run_id"`
+	RunAttempt     string `json:"run_attempt"`
 }
 
 var pullRef = regexp.MustCompile(`^refs/pull/([1-9][0-9]*)/merge$`)
@@ -118,7 +118,9 @@ func (github *GitHub) Authenticate(ctx context.Context, bearer string) (Principa
 		return principal, ErrDenied
 	}
 	policy, ok := github.policies[repository]
-	if !ok || strconv.FormatInt(policy.OwnerID, 10) != identity.OwnerID || identity.ReusableWorkflow != "" || identity.WorkflowRef != identity.Repository+"/"+policy.WorkflowPath+"@"+identity.Ref {
+	if !ok || strconv.FormatInt(policy.OwnerID, 10) != identity.OwnerID ||
+		(identity.JobWorkflowRef != "" && identity.JobWorkflowRef != identity.WorkflowRef) ||
+		identity.WorkflowRef != identity.Repository+"/"+policy.WorkflowPath+"@"+identity.Ref {
 		return principal, ErrDenied
 	}
 	run, err := strconv.ParseInt(identity.RunID, 10, 64)

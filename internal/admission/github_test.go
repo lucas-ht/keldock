@@ -71,6 +71,11 @@ func TestGitHubOIDCAndProvenance(t *testing.T) {
 	if err != nil || principal.Scope != policy.Scope {
 		t.Fatalf("identity: %+v %v", principal, err)
 	}
+	// Live direct-workflow tokens can repeat workflow_ref as job_workflow_ref.
+	claims["job_workflow_ref"] = claims["workflow_ref"]
+	if direct, err := verifier.Authenticate(ctx, signedToken(t, key, claims)); err != nil || direct.Source != principal.Source {
+		t.Fatal("matching direct job workflow identity was denied")
+	}
 	input := v1.SubmitRelease{APIVersion: v1.APIVersion, ProjectID: "sample", Source: principal.Source, Definition: v1.Application{APIVersion: v1.APIVersion, Name: "sample", Components: map[string]v1.Component{"web": {Kind: "http", Size: "small", Port: 8080, Probe: &v1.Probe{Path: "/ready"}}}}, Images: map[string]string{"web": "registry.example/sample@sha256:" + strings.Repeat("b", 64)}}
 	statement, err := provenance.NewStatement(input)
 	if err != nil {
