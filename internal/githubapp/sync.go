@@ -155,6 +155,9 @@ func (service *Service) recordPull(ctx context.Context, grant store.RepositoryGr
 
 // AuthorizeRepository verifies local policy and current remote access before using CI authority.
 func (service *Service) AuthorizeRepository(ctx context.Context, repositoryID, ownerID int64, name string) (store.RepositoryGrant, error) {
+	if _, err := client.RepositoryPath(name); err != nil {
+		return store.RepositoryGrant{}, access.ErrDenied
+	}
 	grant, err := service.Repository.Grant(ctx, repositoryID)
 	if err != nil {
 		return grant, err
@@ -174,7 +177,9 @@ func (service *Service) AuthorizeRepository(ctx context.Context, repositoryID, o
 	if err := api.RepositoryRequest(ctx, token, "GET", fmt.Sprintf("/repositories/%d", repositoryID), nil, &remote); err != nil {
 		return grant, delegationFailure(err)
 	}
-	if remote.ID != repositoryID || remote.Owner.ID != ownerID || remote.FullName != name {
+	// A run or receipt may preserve the old name after a rename. Verified stable
+	// repository/owner IDs grant authority; GitHub's current name supplies routing.
+	if remote.ID != repositoryID || remote.Owner.ID != ownerID {
 		return grant, access.ErrDenied
 	}
 	grant.FullName = remote.FullName

@@ -27,8 +27,8 @@ func TestCurrentGitHubDelegationRenameTransferAndDisconnect(t *testing.T) {
 	f.remote.mu.Lock()
 	f.remote.name = "owner/renamed"
 	f.remote.mu.Unlock()
-	if _, err := f.service.AuthorizeRepository(f.ctx, 100, 42, "owner/sample"); !errors.Is(err, access.ErrDenied) {
-		t.Fatal("stale name accepted")
+	if renamed, err := f.service.AuthorizeRepository(f.ctx, 100, 42, "owner/sample"); err != nil || renamed.FullName != "owner/renamed" {
+		t.Fatal("a previously admitted source name lost stable repository authority")
 	}
 	if _, err := f.service.AuthorizeRepository(f.ctx, 100, 42, "owner/renamed"); err != nil {
 		t.Fatal("stable repository identity did not survive rename")
