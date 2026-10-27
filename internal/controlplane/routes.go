@@ -3,13 +3,17 @@ package controlplane
 import (
 	"net/http"
 	"strings"
-	"time"
 
+	"github.com/lucas-ht/keldock/internal/access"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/storage/postgres"
 )
 
 func (api *API) submit(w http.ResponseWriter, request *http.Request) {
+	if api.GitHub == nil {
+		problem(w, http.StatusServiceUnavailable, "ci_not_configured", "Configure a trusted CI issuer before submitting releases")
+		return
+	}
 	var input v1.SubmitRelease
 	if !decode(w, request, &input) {
 		return
@@ -52,36 +56,27 @@ func (api *API) status(w http.ResponseWriter, request *http.Request) {
 		failure(w, err)
 		return
 	}
-	operation, err := api.Store.Operation(request.Context(), scope, request.PathValue("operation"))
+	reader := access.Principal{Kind: "ci", User: access.User{OrganizationID: scope.OrganizationID, Status: "active", Role: "viewer", Projects: []string{scope.ProjectID}}}
+	result, err := api.inspector().GetOperation(request.Context(), reader, scope.ProjectID, request.PathValue("operation"))
 	if err != nil {
 		failure(w, err)
 		return
 	}
-	observation, err := api.Store.LatestObservation(request.Context(), scope, operation.ID)
-	if err != nil {
-		failure(w, err)
-		return
-	}
-	stale := true
-	var age float64
-	if observation != nil {
-		age = max(0, time.Since(observation.ObservedAt).Seconds())
-		stale = age > 30
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"apiVersion": v1.APIVersion, "operation": operation, "observation": observation, "observationAgeSeconds": age, "stale": stale})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (api *API) cancel(w http.ResponseWriter, request *http.Request) {
-	if !matches(bearer(request), api.OperatorToken) {
-		failure(w, postgres.ErrDenied)
-		return
-	}
-	scope, actor, err := api.scope(request)
+	principal, err := api.Security.Mutation(request)
+	project, exists := api.Projects[request.PathValue("project")]
 	if err != nil {
 		failure(w, err)
 		return
 	}
-	if err := api.Store.Cancel(request.Context(), scope, request.PathValue("operation"), actor); err != nil {
+	if !exists || !principal.CanOperate(project.ProjectID) {
+		failure(w, postgres.ErrDenied)
+		return
+	}
+	if err := api.Store.Cancel(request.Context(), project.Scope, request.PathValue("operation"), "user:"+principal.User.ID); err != nil {
 		failure(w, err)
 		return
 	}
@@ -89,8 +84,8 @@ func (api *API) cancel(w http.ResponseWriter, request *http.Request) {
 }
 
 func (api *API) desired(w http.ResponseWriter, request *http.Request) {
-	if !matches(bearer(request), api.AgentToken) {
-		failure(w, postgres.ErrDenied)
+	if _, err := api.Security.Agent(request); err != nil {
+		failure(w, err)
 		return
 	}
 	items, next, err := api.Store.DesiredPage(request.Context(), api.Organization, api.Cluster, request.URL.Query().Get("after"))
@@ -102,8 +97,8 @@ func (api *API) desired(w http.ResponseWriter, request *http.Request) {
 }
 
 func (api *API) currentDesired(w http.ResponseWriter, request *http.Request) {
-	if !matches(bearer(request), api.AgentToken) {
-		failure(w, postgres.ErrDenied)
+	if _, err := api.Security.Agent(request); err != nil {
+		failure(w, err)
 		return
 	}
 	desired, err := api.Store.CurrentDesired(request.Context(), api.Organization, api.Cluster, request.PathValue("environment"))
@@ -115,8 +110,8 @@ func (api *API) currentDesired(w http.ResponseWriter, request *http.Request) {
 }
 
 func (api *API) observe(w http.ResponseWriter, request *http.Request) {
-	if !matches(bearer(request), api.AgentToken) {
-		failure(w, postgres.ErrDenied)
+	if _, err := api.Security.Agent(request); err != nil {
+		failure(w, err)
 		return
 	}
 	var report v1.Observation

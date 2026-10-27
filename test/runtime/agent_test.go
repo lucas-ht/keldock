@@ -20,7 +20,7 @@ import (
 func (fixture *apiFixture) status(t *testing.T, receipt v1.Receipt) operationStatus {
 	t.Helper()
 	var status operationStatus
-	fixture.call(t, http.MethodGet, receipt.StatusURL, map[string]string{"Authorization": "Bearer " + fixture.api.OperatorToken}, nil, &status, http.StatusOK)
+	fixture.call(t, http.MethodGet, receipt.StatusURL, fixture.userHeaders(), nil, &status, http.StatusOK)
 	return status
 }
 
@@ -58,7 +58,7 @@ func TestAPIWorkerAgentPreviewLifecycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
 	defer cancel()
 	fixture := newAPI(t)
-	client, err := agent.NewClient(fixture.server.URL, fixture.api.AgentToken, true)
+	client, err := agent.NewClient(fixture.server.URL, fixture.agentIdentity.Token, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,12 +116,16 @@ func TestAPIWorkerAgentPreviewLifecycle(t *testing.T) {
 	input = fixture.sign(t, input)
 	second := fixture.submit(t, input, "preview-api-update", http.StatusAccepted)
 	publish()
+	if err := client.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
 	// A restarted agent has no local journal; PostgreSQL and cluster evidence drive recovery.
-	restartedClient, err := agent.NewClient(fixture.server.URL, fixture.api.AgentToken, true)
+	restartedClient, err := agent.NewClient(fixture.server.URL, fixture.agentIdentity.Token, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	runtime.Client = restartedClient
+	client = restartedClient
 	if second.EnvironmentID != first.EnvironmentID || second.Generation != first.Generation+1 {
 		t.Fatal("PR update did not select the stable preview with a new generation")
 	}

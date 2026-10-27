@@ -32,8 +32,7 @@ type controlSettings struct {
 	RegistryUsername     string               `json:"registryUsername,omitempty"`
 	RegistryPasswordFile string               `json:"registryPasswordFile,omitempty"`
 	RegistryPlainHTTP    bool                 `json:"registryPlainHttp"`
-	OperatorTokenFile    string               `json:"operatorTokenFile"`
-	AgentTokenFile       string               `json:"agentTokenFile"`
+	PublicURL            string               `json:"publicUrl"`
 	WebhookSecretFile    string               `json:"webhookSecretFile"`
 	GitHubIssuer         string               `json:"githubIssuer"`
 	GitHubAudience       string               `json:"githubAudience"`
@@ -43,7 +42,7 @@ type controlSettings struct {
 
 type agentSettings struct {
 	APIURL            string `json:"apiUrl"`
-	TokenFile         string `json:"tokenFile"`
+	CredentialFile    string `json:"credentialFile"`
 	Kubeconfig        string `json:"kubeconfig,omitempty"`
 	Context           string `json:"context,omitempty"`
 	RegistryPull      string `json:"registryPull"`

@@ -28,7 +28,7 @@ import (
 func TestAPIAuthorityReceiptsAndObservations(t *testing.T) {
 	fixture := newAPI(t)
 	input := fixture.sign(t, applicationInput(t))
-	for _, token := range []string{"", fixture.api.OperatorToken, fixture.api.AgentToken} {
+	for _, token := range []string{"", strings.Repeat("o", 48), fixture.agentIdentity.Token} {
 		fixture.call(t, http.MethodPost, "/v1/releases", map[string]string{"Authorization": "Bearer " + token, "Idempotency-Key": "denied-request"}, input, nil, http.StatusForbidden)
 	}
 	receipt := fixture.submit(t, input, "accepted-request", http.StatusAccepted)
@@ -47,7 +47,7 @@ func TestAPIAuthorityReceiptsAndObservations(t *testing.T) {
 	fixture.submit(t, changed, "incomplete-images", http.StatusBadRequest)
 	fixture.call(t, http.MethodPost, "/v1/releases", nil, []byte(`{"apiVersion":"keldock.io/v1alpha1","unknown":true}`), nil, http.StatusBadRequest)
 	fixture.call(t, http.MethodGet, "/v1/projects/other/operations/"+receipt.OperationID, map[string]string{"Authorization": "Bearer " + fixture.token(t, input.Source)}, nil, nil, http.StatusForbidden)
-	fixture.call(t, http.MethodGet, "/v1/agent/desired", map[string]string{"Authorization": "Bearer " + fixture.api.OperatorToken}, nil, nil, http.StatusForbidden)
+	fixture.call(t, http.MethodGet, "/v1/agent/desired", fixture.userHeaders(), nil, nil, http.StatusForbidden)
 	fixture.call(t, http.MethodPost, "/v1/github/webhooks", map[string]string{"X-Hub-Signature-256": "sha256=00"}, []byte(`{}`), nil, http.StatusForbidden)
 	fixture.call(t, http.MethodPost, receipt.StatusURL+"/cancel", map[string]string{"Authorization": "Bearer " + fixture.token(t, input.Source)}, nil, nil, http.StatusForbidden)
 
@@ -57,7 +57,7 @@ func TestAPIAuthorityReceiptsAndObservations(t *testing.T) {
 	if didWork, err := worker.Step(ctx); err != nil || !didWork {
 		t.Fatalf("publication: %v %v", didWork, err)
 	}
-	client, err := agent.NewClient(fixture.server.URL, fixture.api.AgentToken, true)
+	client, err := agent.NewClient(fixture.server.URL, fixture.agentIdentity.Token, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestAPIAuthorityReceiptsAndObservations(t *testing.T) {
 		t.Fatalf("desired: %d %v", len(desired), err)
 	}
 	report := v1.Observation{EnvironmentID: receipt.EnvironmentID, DeploymentID: receipt.DeploymentID, Generation: receipt.Generation, Bundle: desired[0].Bundle, State: "reconciling", Reason: "Waiting", ObservedAt: time.Now().UTC()}
-	headers := map[string]string{"Authorization": "Bearer " + fixture.api.AgentToken}
+	headers := map[string]string{"Authorization": "Bearer " + fixture.agentIdentity.Token, "X-Keldock-Agent-Session": client.SessionID()}
 	fixture.call(t, http.MethodPost, "/v1/agent/observations", headers, report, nil, http.StatusOK)
 	older := report
 	older.ObservedAt = older.ObservedAt.Add(-time.Second)
@@ -77,7 +77,7 @@ func TestAPIAuthorityReceiptsAndObservations(t *testing.T) {
 	if status.Stale || status.Report == nil || !reflect.DeepEqual(*status.Report, report) || status.Operation.State != "reconciling" {
 		t.Fatalf("status lost current evidence: %+v", status)
 	}
-	fixture.call(t, http.MethodPost, receipt.StatusURL+"/cancel", map[string]string{"Authorization": "Bearer " + fixture.api.OperatorToken}, nil, nil, http.StatusAccepted)
+	fixture.call(t, http.MethodPost, receipt.StatusURL+"/cancel", fixture.userHeaders(), nil, nil, http.StatusAccepted)
 	report.ObservedAt = time.Now().UTC()
 	fixture.call(t, http.MethodPost, "/v1/agent/observations", headers, report, nil, http.StatusConflict)
 
@@ -121,16 +121,16 @@ func TestCLIServerAndAgent(t *testing.T) {
 		}
 		return privateFile(name, data)
 	}
-	agentToken := privateFile("agent-token", []byte(fixture.api.AgentToken))
+	agentCredential := jsonFile("agent-credential.json", map[string]any{"identity": fixture.agentIdentity})
 	settings := map[string]any{
 		"databaseUrl": config.DatabaseURL, "listen": strings.TrimPrefix(fixture.server.URL, "http://"), "organizationId": fixture.scope.OrganizationID, "clusterId": "keldock-m1", "domain": "keldock.test",
 		"registryPush": config.RegistryPush, "registryPull": config.RegistryPull, "registryPlainHttp": true, "development": true,
-		"operatorTokenFile": privateFile("operator-token", []byte(fixture.api.OperatorToken)), "agentTokenFile": agentToken, "webhookSecretFile": privateFile("webhook-secret", fixture.api.WebhookSecret),
+		"publicUrl": fixture.server.URL, "webhookSecretFile": privateFile("webhook-secret", fixture.api.WebhookSecret),
 		"githubIssuer": fixture.issuer.URL, "githubAudience": "keldock:fixture",
 		"projects": []map[string]any{{"id": "sample", "name": "Sample", "repositoryId": 42, "ownerId": 24, "workflowPath": ".github/workflows/build.yaml", "pushRef": "refs/heads/main", "provenanceKeys": map[string]string{"fixture": base64.StdEncoding.EncodeToString(fixture.signing.Public().(ed25519.PublicKey))}}},
 	}
 	controlConfig := jsonFile("control.json", settings)
-	agentConfig := jsonFile("agent.json", map[string]any{"apiUrl": fixture.server.URL, "tokenFile": agentToken, "kubeconfig": config.Kubeconfig, "context": config.Context, "registryPull": config.RegistryPull, "registryPlainHttp": true, "development": true})
+	agentConfig := jsonFile("agent.json", map[string]any{"apiUrl": fixture.server.URL, "credentialFile": agentCredential, "kubeconfig": config.Kubeconfig, "context": config.Context, "registryPull": config.RegistryPull, "registryPlainHttp": true, "development": true})
 	if output, err := exec.CommandContext(ctx, binary, "inspect", "--config", agentConfig).CombinedOutput(); err != nil {
 		t.Fatalf("supplied dependency inspection: %s %v", output, err)
 	}

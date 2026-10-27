@@ -28,10 +28,13 @@ func main() {
 
 func run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: keldock serve|agent|inspect|validate|attest|keygen")
+		return fmt.Errorf("usage: keldock serve|agent|enroll|bootstrap|recover|inspect|validate|attest|keygen")
 	}
 	if args[0] == "attest" || args[0] == "keygen" {
 		return provenanceCommand(args)
+	}
+	if args[0] == "bootstrap" || args[0] == "recover" || args[0] == "enroll" {
+		return identityCommand(ctx, args)
 	}
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -78,11 +81,7 @@ func run(ctx context.Context, args []string) error {
 		if args[0] == "inspect" {
 			return json.NewEncoder(os.Stdout).Encode(dependencies)
 		}
-		token, err := secret(settings.TokenFile)
-		if err != nil {
-			return err
-		}
-		client, err := agent.NewClient(settings.APIURL, token, settings.Development)
+		client, err := agent.ClientFromFile(settings.APIURL, settings.CredentialFile, settings.Development)
 		if err != nil {
 			return err
 		}

@@ -1,21 +1,21 @@
 package controlplane
 
 import (
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 
+	"github.com/lucas-ht/keldock/internal/access"
 	"github.com/lucas-ht/keldock/internal/admission"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
+	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
+	"github.com/lucas-ht/keldock/internal/mcpserver"
 	"github.com/lucas-ht/keldock/internal/storage/postgres"
 )
 
 // API exposes one experimental installation's shared authenticated product routes.
-// Static operator/agent credentials are an M1 development profile, not hosted authentication.
 type API struct {
 	Store            *postgres.Store
 	GitHub           *admission.GitHub
@@ -23,24 +23,34 @@ type API struct {
 	Cluster          string
 	Projects         map[string]v1.Project
 	RepositoryOwners map[int64]int64
-	OperatorToken    string
-	AgentToken       string
+	Security         *authentication.Service
 	WebhookSecret    []byte
+	Development      bool
+	Notice           string
 	Domain           string
 }
 
 // Handler connects CI, status, webhook and outbound-agent routes to the same stored authority.
 func (api *API) Handler() http.Handler {
-	if api.Store == nil || api.GitHub == nil || !v1.ValidName(api.Organization) || !v1.ValidName(api.Cluster) || len(api.Projects) == 0 || len(api.OperatorToken) < 32 || len(api.AgentToken) < 32 || api.OperatorToken == api.AgentToken || len(api.WebhookSecret) < 32 || api.Domain == "" {
+	if api.Store == nil || api.Security == nil || !v1.ValidName(api.Organization) || !v1.ValidName(api.Cluster) || api.Domain == "" {
 		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			problem(w, http.StatusServiceUnavailable, "installation_not_configured", "Installation configuration is incomplete")
 		})
 	}
 	mux := http.NewServeMux()
+	api.Security.Register(mux)
+	mux.Handle("/mcp", mcpserver.Handler(api.Security.MCP, api.inspector()))
+	mux.HandleFunc("GET /v1/installation", api.installation)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /v1/releases", api.submit)
+	mux.HandleFunc("GET /v1/projects", api.projects)
+	mux.HandleFunc("GET /v1/projects/{project}/environments", api.environments)
+	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}", api.environment)
+	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}/diagnostics", api.diagnostics)
+	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}/timeline", api.timeline)
+	mux.HandleFunc("POST /v1/projects/{project}/operations/{operation}/retry", api.retry)
 	mux.HandleFunc("GET /v1/projects/{project}/operations/{operation}", api.status)
 	mux.HandleFunc("POST /v1/projects/{project}/operations/{operation}/cancel", api.cancel)
 	mux.HandleFunc("POST /v1/github/webhooks", api.webhook)
@@ -55,15 +65,7 @@ func (api *API) Handler() http.Handler {
 }
 
 func bearer(request *http.Request) string {
-	value := request.Header.Get("Authorization")
-	if !strings.HasPrefix(value, "Bearer ") {
-		return ""
-	}
-	return strings.TrimPrefix(value, "Bearer ")
-}
-
-func matches(token, expected string) bool {
-	return len(expected) >= 32 && subtle.ConstantTimeCompare([]byte(token), []byte(expected)) == 1
+	return authentication.Bearer(request)
 }
 
 func (api *API) scope(request *http.Request) (v1.Scope, string, error) {
@@ -71,8 +73,18 @@ func (api *API) scope(request *http.Request) (v1.Scope, string, error) {
 	if !exists || project.OrganizationID != api.Organization {
 		return v1.Scope{}, "", postgres.ErrDenied
 	}
-	if matches(bearer(request), api.OperatorToken) {
-		return project.Scope, "operator", nil
+	reader, err := api.Security.Reader(request)
+	if err == nil {
+		if !reader.CanRead(project.ProjectID) {
+			return v1.Scope{}, "", access.ErrDenied
+		}
+		return project.Scope, "user:" + reader.User.ID, nil
+	}
+	if !authentication.IsIdentityError(err) {
+		return v1.Scope{}, "", err
+	}
+	if api.GitHub == nil {
+		return v1.Scope{}, "", access.ErrDenied
 	}
 	principal, err := api.GitHub.Authenticate(request.Context(), bearer(request))
 	if err != nil || principal.Scope != project.Scope {
@@ -107,14 +119,14 @@ func problem(w http.ResponseWriter, status int, code, message string) {
 
 func failure(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, postgres.ErrDenied), errors.Is(err, admission.ErrDenied):
+	case errors.Is(err, postgres.ErrDenied), errors.Is(err, admission.ErrDenied), errors.Is(err, access.ErrDenied):
 		problem(w, http.StatusForbidden, "denied", "Request outside authorized scope")
-	case errors.Is(err, postgres.ErrNotFound):
+	case errors.Is(err, postgres.ErrNotFound), errors.Is(err, access.ErrNotFound):
 		problem(w, http.StatusNotFound, "not_found", "Target not found")
-	case errors.Is(err, postgres.ErrConflict), errors.Is(err, postgres.ErrStale):
+	case errors.Is(err, postgres.ErrConflict), errors.Is(err, postgres.ErrStale), errors.Is(err, access.ErrConflict), errors.Is(err, access.ErrSessionBusy):
 		problem(w, http.StatusConflict, "conflict", "Conflicting or stale desired revision")
 	default:
 		slog.Error("API operation failed", "error", err)
-		problem(w, http.StatusInternalServerError, "unavailable", "Operation unavailable; retry using the same request identity")
+		problem(w, http.StatusServiceUnavailable, "unavailable", "Operation unavailable; retry using the same request identity")
 	}
 }

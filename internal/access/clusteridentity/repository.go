@@ -44,7 +44,10 @@ func rollback(ctx context.Context, tx pgx.Tx) {
 
 func (repository *Repository) administrator(ctx context.Context, tx pgx.Tx, principal access.Principal) error {
 	user, err := repository.users.RequireHuman(ctx, tx, principal)
-	if err != nil || user.Role != "admin" {
+	if err != nil {
+		return err
+	}
+	if user.Role != "admin" {
 		return access.ErrDenied
 	}
 	return nil

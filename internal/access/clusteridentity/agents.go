@@ -68,8 +68,11 @@ func (repository *Repository) Rotate(ctx context.Context, id, current, pending, 
 	err = tx.QueryRow(ctx, `SELECT a.id,a.organization_id,a.cluster_id,a.revision,a.expires_at,a.token_hash,a.session_id,a.session_until
 FROM access_agents a JOIN access_clusters c ON c.organization_id=a.organization_id AND c.id=a.cluster_id
 WHERE a.id=$1 AND a.organization_id=$2 AND a.cluster_id=$3 AND a.revoked_at IS NULL AND a.expires_at>now() AND c.revoked_at IS NULL AND c.revision=a.revision FOR UPDATE OF a`, id, repository.users.Organization, repository.cluster).Scan(&identity.ID, &identity.OrganizationID, &identity.ClusterID, &identity.Generation, &identity.ExpiresAt, &stored, &holder, &lease)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return Identity{}, access.ErrDenied
+	}
+	if err != nil {
+		return Identity{}, err
 	}
 	if lease != nil && lease.After(time.Now()) && holder != session {
 		return Identity{}, access.ErrSessionBusy

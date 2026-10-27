@@ -4,6 +4,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
@@ -24,9 +26,12 @@ func (err APIError) Error() string { return fmt.Sprintf("control-plane response 
 
 // Client speaks the versioned agent API. Credentials never enter workload definitions.
 type Client struct {
-	base  string
-	token string
-	http  *http.Client
+	mu          sync.Mutex
+	session     string
+	credentials *credentialState
+	base        string
+	token       string
+	http        *http.Client
 }
 
 // NewClient requires HTTPS, with an explicit loopback HTTP exception for development.
@@ -42,10 +47,16 @@ func NewClient(endpoint, token string, allowLocalHTTP bool) (*Client, error) {
 	if parsed.Scheme != "https" && (!allowLocalHTTP || !local || parsed.Scheme != "http") {
 		return nil, fmt.Errorf("agent API requires HTTPS")
 	}
-	return &Client{base: strings.TrimSuffix(endpoint, "/"), token: token, http: &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	return &Client{session: rand.Text(), base: strings.TrimSuffix(endpoint, "/"), token: token, http: &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
 func (client *Client) request(ctx context.Context, method, path string, input, output any) error {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	return client.requestLocked(ctx, method, path, input, output)
+}
+
+func (client *Client) requestLocked(ctx context.Context, method, path string, input, output any) error {
 	var body []byte
 	var err error
 	if input != nil {
@@ -60,6 +71,8 @@ func (client *Client) request(ctx context.Context, method, path string, input, o
 	}
 	request.Header.Set("Authorization", "Bearer "+client.token)
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Keldock-Agent-Session", client.session)
+	request.Header.Set("X-Keldock-Agent-Version", "0.2.0-dev")
 	response, err := client.http.Do(request)
 	if err != nil {
 		return fmt.Errorf("control-plane connection unavailable")
@@ -122,4 +135,17 @@ func (client *Client) Current(ctx context.Context, environment string) (*v1.Proj
 // Observe reports revision-aware evidence independently of the original submitting client.
 func (client *Client) Observe(ctx context.Context, report v1.Observation) error {
 	return client.request(ctx, http.MethodPost, "/v1/agent/observations", report, nil)
+}
+
+// SessionID identifies this process lease, without granting access by itself.
+func (client *Client) SessionID() string { return client.session }
+
+// Heartbeat maintains the exclusive lease while a long cluster operation is running.
+func (client *Client) Heartbeat(ctx context.Context) error {
+	return client.request(ctx, http.MethodPost, "/v1/agent/heartbeat", nil, nil)
+}
+
+// Release allows a replacement process to reconnect immediately after graceful shutdown.
+func (client *Client) Release(ctx context.Context) error {
+	return client.request(ctx, http.MethodPost, "/v1/agent/session/release", nil, nil)
 }

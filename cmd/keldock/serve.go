@@ -8,10 +8,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/lucas-ht/keldock/internal/access"
+	"github.com/lucas-ht/keldock/internal/access/clusteridentity"
+	"github.com/lucas-ht/keldock/internal/access/mcpidentity"
 	"github.com/lucas-ht/keldock/internal/admission"
 	"github.com/lucas-ht/keldock/internal/artifacts"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane"
+	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
 	"github.com/lucas-ht/keldock/internal/storage/postgres"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -24,20 +28,9 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 	if settings.RegistryPlainHTTP && !settings.Development {
 		return fmt.Errorf("plain HTTP registry is a development-only profile")
 	}
-	operator, err := secret(settings.OperatorTokenFile)
-	if err != nil {
-		return err
-	}
-	agentToken, err := secret(settings.AgentTokenFile)
-	if err != nil {
-		return err
-	}
 	webhookSecret, err := secret(settings.WebhookSecretFile)
 	if err != nil {
 		return err
-	}
-	if operator == agentToken {
-		return fmt.Errorf("operator and agent require distinct credentials")
 	}
 	store, err := postgres.Open(ctx, settings.DatabaseURL)
 	if err != nil {
@@ -83,8 +76,34 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 	if err != nil {
 		return err
 	}
+	users, err := access.NewRepository(store.Pool(), settings.Organization)
+	if err != nil {
+		return err
+	}
+	clusters, err := clusteridentity.NewRepository(store.Pool(), users, settings.Cluster)
+	if err != nil {
+		return err
+	}
+	if err := clusters.Seed(ctx, settings.Cluster); err != nil {
+		return err
+	}
+	mcp, err := mcpidentity.NewRepository(store.Pool(), users, settings.PublicURL)
+	if err != nil {
+		return err
+	}
+	if err := mcp.Seed(ctx); err != nil {
+		return err
+	}
+	projectIDs := make([]string, 0, len(projects))
+	for id := range projects {
+		projectIDs = append(projectIDs, id)
+	}
+	security, err := authentication.New(users, clusters, mcp, authentication.Config{PublicURL: settings.PublicURL, Development: settings.Development, ClusterID: settings.Cluster, Projects: projectIDs})
+	if err != nil {
+		return err
+	}
 	api := &controlplane.API{Store: store, GitHub: verifier, Organization: settings.Organization, Cluster: settings.Cluster, Projects: projects, RepositoryOwners: owners,
-		OperatorToken: operator, AgentToken: agentToken, WebhookSecret: []byte(webhookSecret), Domain: settings.Domain}
+		Security: security, Development: settings.Development, WebhookSecret: []byte(webhookSecret), Domain: settings.Domain}
 	server := &http.Server{Addr: settings.Listen, Handler: api.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, MaxHeaderBytes: 16 * 1024}
 	group, active := errgroup.WithContext(ctx)
 	group.Go(func() error {

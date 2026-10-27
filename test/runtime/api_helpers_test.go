@@ -28,6 +28,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lucas-ht/keldock/internal/access"
+	"github.com/lucas-ht/keldock/internal/access/clusteridentity"
+	"github.com/lucas-ht/keldock/internal/access/mcpidentity"
+	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
+
 	"github.com/lucas-ht/keldock/internal/admission"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane"
@@ -36,13 +41,15 @@ import (
 )
 
 type apiFixture struct {
-	api      *controlplane.API
-	server   *httptest.Server
-	issuer   *httptest.Server
-	identity *rsa.PrivateKey
-	signing  ed25519.PrivateKey
-	scope    v1.Scope
-	store    *postgres.Store
+	api           *controlplane.API
+	server        *httptest.Server
+	issuer        *httptest.Server
+	identity      *rsa.PrivateKey
+	signing       ed25519.PrivateKey
+	scope         v1.Scope
+	store         *postgres.Store
+	session       string
+	agentIdentity clusteridentity.Identity
 }
 
 type operationStatus struct {
@@ -84,8 +91,58 @@ func newAPI(t *testing.T) *apiFixture {
 		t.Fatal(err)
 	}
 	project := v1.Project{Scope: scope, Name: "Sample", RepositoryID: 42, ClusterID: "keldock-m1"}
-	fixture.api = &controlplane.API{Store: store, GitHub: verifier, Organization: scope.OrganizationID, Cluster: "keldock-m1", Projects: map[string]v1.Project{"sample": project}, RepositoryOwners: map[int64]int64{42: 24}, OperatorToken: strings.Repeat("o", 48), AgentToken: strings.Repeat("a", 48), WebhookSecret: bytes.Repeat([]byte("w"), 48), Domain: "keldock.test"}
-	fixture.server = httptest.NewServer(fixture.api.Handler())
+	fixture.api = &controlplane.API{Store: store, GitHub: verifier, Organization: scope.OrganizationID, Cluster: "keldock-m1", Projects: map[string]v1.Project{"sample": project}, RepositoryOwners: map[int64]int64{42: 24}, WebhookSecret: bytes.Repeat([]byte("w"), 48), Domain: "keldock.test"}
+	fixture.server = httptest.NewUnstartedServer(nil)
+	origin := "http://" + fixture.server.Listener.Addr().String()
+	users, err := access.NewRepository(store.Pool(), scope.OrganizationID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clusters, err := clusteridentity.NewRepository(store.Pool(), users, "keldock-m1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := clusters.Seed(ctx, "Local cluster"); err != nil {
+		t.Fatal(err)
+	}
+	mcp, err := mcpidentity.NewRepository(store.Pool(), users, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := mcp.Seed(ctx); err != nil {
+		t.Fatal(err)
+	}
+	security, err := authentication.New(users, clusters, mcp, authentication.Config{PublicURL: origin, Development: true, ClusterID: "keldock-m1", Projects: []string{"sample"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.api.Security = security
+	invitation, err := users.Bootstrap(ctx, "admin@example.test", "Local administrator")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, err := access.HashPassword("local synthetic account password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, fixture.session, err = users.Activate(ctx, invitation.Token, hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	principal, _, err := users.Session(ctx, fixture.session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollment, err := clusters.CreateEnrollment(ctx, principal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.agentIdentity, err = clusters.Exchange(ctx, "keldock-m1", enrollment.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.server.Config.Handler = fixture.api.Handler()
+	fixture.server.Start()
 	t.Cleanup(fixture.server.Close)
 	return fixture
 }
@@ -236,4 +293,8 @@ func startCLI(t *testing.T, ctx context.Context, binary string, args ...string) 
 			}
 		}
 	})
+}
+
+func (fixture *apiFixture) userHeaders() map[string]string {
+	return map[string]string{"Cookie": fixture.api.Security.CookieName() + "=" + fixture.session, "Origin": fixture.server.URL, "X-Keldock-CSRF": access.CSRF(fixture.session)}
 }

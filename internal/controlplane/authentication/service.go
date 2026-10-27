@@ -64,6 +64,7 @@ func (service *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/activate", service.activate)
 	mux.HandleFunc("POST /v1/auth/password", service.password)
 	mux.HandleFunc("GET /v1/users", service.users)
+	mux.HandleFunc("GET /v1/users/{user}", service.user)
 	mux.HandleFunc("POST /v1/users", service.invite)
 	mux.HandleFunc("PATCH /v1/users/{user}", service.updateUser)
 	mux.HandleFunc("POST /v1/users/{user}/invitation", service.reissueInvitation)

@@ -75,3 +75,20 @@ func (service *Service) invitationResponse(invitation access.Invitation) map[str
 	// A fragment is not sent in HTTP referrers or server request logs.
 	return map[string]any{"user": invitation.User, "activationUrl": service.config.PublicURL + "/activate#" + invitation.Token, "expiresAt": invitation.ExpiresAt}
 }
+
+func (service *Service) user(w http.ResponseWriter, request *http.Request) {
+	principal, ok := service.human(w, request, false)
+	if !ok {
+		return
+	}
+	if !principal.IsAdmin() {
+		fail(w, access.ErrDenied)
+		return
+	}
+	user, err := service.Users.User(request.Context(), request.PathValue("user"))
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	write(w, http.StatusOK, user)
+}
