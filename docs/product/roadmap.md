@@ -10,6 +10,11 @@ optional PostgreSQL with supplied backup infrastructure, and bounded MCP/skills 
 module administration, AWS provisioning, hosted service, and compute fleets are separate
 gates. Keep the product FOSS and accessible to individuals and small teams.
 
+The current M2 slice provides local accounts/recovery, enrolled agent identity, a
+deployment-first console and consented MCP reads. These keep the future hosted boundary
+concrete while leaving capability installation, skills and hosted tenancy behind their
+own evidence gates. See [current validation](../validation/m2-access-and-console.md).
+
 ## M5: Optional AWS resources
 
 This optional track depends on relevant identity/lifecycle spikes and core delivery;

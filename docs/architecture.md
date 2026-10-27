@@ -89,8 +89,10 @@ flowchart TD
 These are logical boundaries, not one service per box. The implemented baseline is Go
 for a modular API/worker and outbound agent/registrar, with PostgreSQL for durable state.
 The [first runtime profile](decisions/0004-first-runtime-profile.md) selects development
-packaging and interface targets. TypeScript/React UI and the thin Action remain later
-work. Pin runtime dependencies with implementation evidence rather than empty scaffolding.
+packaging. [Shared authentication](decisions/0005-shared-authentication-and-remote-mcp.md)
+now protects a Next.js/React console, enrolled agents and a remote read-only MCP adapter.
+The console prioritizes deployment health and exposes account, cluster and MCP lifecycle
+management. The thin Action remains M3. Pin dependencies with implementation evidence.
 
 Validate a PostgreSQL outbox/leased-worker default. Temporal may be an optional future
 engine profile; it is not required for the minimum installation. Internal workflow
@@ -133,9 +135,10 @@ See the [authority decision](decisions/0002-state-and-reconciliation.md).
 | CloudConnection            | Optional account/region/capability scope and provisioning identity          |
 | Operation / Observation    | Durable work/attempt history and evidence for an exact desired revision     |
 
-Core application/release/operation/observation contracts have executable validation;
-the other domain types do not imply a working capability or enrollment API. Persistence
-establishes operator-owned organization/project placement and rejects reassignment.
+Core application/release/operation/observation contracts have executable validation.
+Accounts, project grants, single-use enrollment, agent leases/revocation and MCP grants
+are durable; capability/resource types still do not imply installation/allocation APIs.
+Persistence establishes operator-owned organization/project placement and rejects reassignment.
 One-organization v1 does not justify trusting caller-supplied tenant IDs.
 
 ## Interfaces, modules and portability
@@ -147,6 +150,12 @@ bindings, and define the first PostgreSQL integration.
 [MCP and skills](architecture/agent-interfaces.md) use the same authenticated APIs,
 operation receipts, policy, and retention rules as the UI. No separate privileged agent
 path exists. Supported API operations grow before their tools and skills are advertised.
+
+The [authentication contract](runtime/authentication.md) separates human sessions, CI
+OIDC/provenance, enrolled agent credentials and delegated MCP grants. The Go API checks
+current authority at each boundary; the Next.js server forwards the session through an
+uncached server-only data layer. MCP uses an explicitly consented project subset and
+cannot mutate even when its human owner is an administrator.
 
 The [hosted boundary](architecture/hosted-control-plane.md) preserves customer ownership,
 outbound agent sessions, outage behavior, and portable recovery. Hosted topology alone

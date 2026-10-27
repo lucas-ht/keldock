@@ -1,7 +1,8 @@
 # Keldock implementation plan
 
 Updated 2026-10-27. Milestones are dependency gates, not calendar commitments.
-This is a fresh repository: M0 tooling/design and the experimental core M1 are implemented.
+This is a fresh repository: M0/core M1 and the M2 authentication, console and MCP-read
+slice are implemented. Full M2 retains the private-registry pull acceptance gate.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
 ## First-release target
@@ -29,7 +30,7 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 | --------- | ------------------------------------------------------- | -------------------------- | ------------------------------------------------ |
 | M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap                    |
 | M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain         |
-| M2        | Durable API/agent, local delivery and MCP reads         | Core M1                    | Runtime slice implemented; product gates pending |
+| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Auth/UI/reads implemented; private pulls pending |
 | M3        | GitHub integration, thin Action and feedback            | M2                         | Pending                                          |
 | M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                                          |
 | M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                            |
@@ -81,13 +82,14 @@ PostgreSQL dispatch/recovery, API admission/status, signed event handling, and a
 agent with real local Flux delivery. [Local acceptance](runtime/local-development.md)
 includes multi-service previews, an API-only image update, prerequisite/readiness failure,
 recovery, scoped access, isolation, pruning/rollback, teardown and compiled processes.
-The [profile decision](decisions/0004-first-runtime-profile.md) selects packaging, human
-auth and MCP integration targets. Capability/resource/enrollment types do not imply
-implemented APIs. CNPG/restore and cloud spikes keep their separate M6/M5 gates.
+The [profile decision](decisions/0004-first-runtime-profile.md) selects packaging;
+[ADR 0005](decisions/0005-shared-authentication-and-remote-mcp.md) records implemented
+human authentication, agent enrollment and remote MCP. Capability/resource types do
+not imply installation/allocation APIs. CNPG/restore and cloud keep separate M6/M5 gates.
 
-This runtime slice advances M2–M4 without closing those milestones. Remaining product
-gates include human authorization, single-use enrollment/revocation, UI/MCP, private
-registry profiles, thin Action/live GitHub feedback, onboarding and data recovery.
+This runtime advances M2–M4 without closing every gate. Remaining work includes private
+registry pull profiles, thin Action/live GitHub feedback, bounded MCP writes/skills,
+general onboarding and data recovery.
 
 ## M2: Durable control plane and local delivery
 
@@ -111,6 +113,14 @@ pull access and no Git writeback. Accepted work survives a lost submitting clien
 Extend task local:test through the real API and agent. The earlier fixture alone does
 not close M2. MCP tests include cross-project denial, revoked credentials, structured
 errors and stale observations.
+
+Implemented and [locally validated](validation/m2-access-and-console.md): durable local
+accounts and project grants; bootstrap/recovery; single-use enrollment, leases, rotation
+and revocation; a health-first Next.js console with people/cluster/MCP administration;
+retry/cancel and redacted diagnostics; five read tools behind OAuth project consent.
+The SDK flow tests current authority and narrowed access. Full M2 remains open until an
+authenticated private-registry pull profile is implemented and exercised; the current
+registry is intentionally unauthenticated and local. Assistant-host/skill acceptance is M4.
 
 ## M3: GitHub CI integration and feedback
 

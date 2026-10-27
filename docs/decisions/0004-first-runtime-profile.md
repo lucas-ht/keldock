@@ -2,6 +2,10 @@
 
 Status: accepted, 2026-10-27. Experimental core M1 profile; not a self-hosted alpha.
 
+Historical M1 decision: [ADR 0005](0005-shared-authentication-and-remote-mcp.md) supersedes
+the static credential and stdio MCP choices below with implemented accounts, enrollment
+and remote OAuth MCP. Runtime/packaging boundaries continue to apply.
+
 ## Runtime and ownership
 
 Use a modular Go binary with separate `serve` and `agent` commands. Serve runs the

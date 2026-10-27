@@ -1,8 +1,8 @@
 # API, MCP and agent skills
 
-Status: shared experimental delivery/status API implemented. MCP adapter and skill
-artifacts remain pending; the [first runtime profile](../decisions/0004-first-runtime-profile.md)
-selects their protocol/SDK/auth target without claiming runtime compatibility.
+Status: authenticated shared inspection APIs and five remote MCP read tools are
+implemented. [ADR 0005](../decisions/0005-shared-authentication-and-remote-mcp.md) records
+the OAuth/SDK profile. MCP writes, first-party skills and assistant-host acceptance remain M4.
 
 ## Shared behavior
 
@@ -18,7 +18,16 @@ practical, rather than requiring another service for every interface.
 Skills are versioned guidance for discovery, workflow and outcome interpretation. They
 do not grant authority, execute a hidden control plane, or replace server policy.
 
-## V1 surface
+## Implemented M2 reads
+
+The stateless Streamable HTTP adapter uses the official Go SDK v1.8.0 and MCP
+2026-07-28. Tools are list_projects, list_environments, get_environment, get_operation
+and get_diagnostics. The [authentication contract](../runtime/authentication.md) defines
+their pagination, bounded evidence, explicit project consent and durable revocation.
+Endpoint/client/connection management is available in the console. A real SDK client
+exercises registration, PKCE, refresh and narrowed access; no assistant-host pass is claimed.
+
+## Planned complete v1 surface
 
 | Operation    | Behavior                                                                                        |
 | ------------ | ----------------------------------------------------------------------------------------------- |
@@ -27,7 +36,7 @@ do not grant authority, execute a hidden control plane, or replace server policy
 | Deploy       | Select an already admitted immutable release for an authorized nonproduction target             |
 | Retry/cancel | Apply the existing operation policy, identity, revision and cancellation semantics              |
 
-Exact names/schemas are an implementation deliverable. CI owns the first provenance-checked
+Write-tool names/schemas remain an M4 deliverable. CI owns the first provenance-checked
 release submission. MCP cannot assert that an arbitrary image is verified, and release
 reuse still checks current target authorization. Production promotion, privilege grants,
 module installation, cloud adoption, persistent-data deletion and arbitrary shell access
@@ -52,8 +61,8 @@ retry/cancel, and operator decisions. Publish only tools and flows that work.
 - Distinguish unsupported, denied, missing prerequisite, stale, partial effect, retryable
   failure and completed outcomes. Bound output, pagination, logs and rate limits.
 
-Follow [MCP tools][tools] and choose a pinned protocol/SDK compatibility profile in M1.
-Design references do not select a dependency version automatically.
+Follow [MCP tools][tools] and the pinned, tested compatibility profile. Design references
+alone do not establish runtime compatibility.
 
 ## Authorization and data
 

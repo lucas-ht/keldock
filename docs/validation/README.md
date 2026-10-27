@@ -53,6 +53,10 @@ does not establish cloud behavior, production availability, data backup/restore,
 tenant isolation, or a supported minimum footprint. Cron readiness proves schedule
 configuration; the job fixture's HTTP counter is not a database migration/restore test.
 
+The later [M2 access and console evidence](m2-access-and-console.md) adds authentication,
+enrollment/revocation, the console and real SDK MCP reads. The M1 record above remains
+historical; its listed auth/UI gaps are superseded only by that specific local evidence.
+
 ## Reproduce repository checks
 
 ```sh

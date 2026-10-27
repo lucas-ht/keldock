@@ -1,9 +1,10 @@
 # Experimental runtime processes
 
-This is a developer profile for the first runtime, with static installation credentials.
+This is a developer profile with local accounts, enrolled agents and delegated MCP reads.
 Use [the disposable acceptance environment](local-development.md) to reproduce its
-tested behavior. General installation, human login, enrollment and GitHub App onboarding
-are later gates; no production deployment is implied by these commands.
+tested behavior. See [authentication and recovery](authentication.md) and the
+[console guide](console.md). General installation and GitHub App onboarding are later
+gates; no production deployment is implied by these commands.
 
 ## Commands
 
@@ -13,6 +14,8 @@ mise exec -- go build -o .local/keldock ./cmd/keldock
 .local/keldock keygen --key-id build-key --private-key .local/build-key.pem --public-key .local/build-key.json
 .local/keldock inspect --config .local/agent.json
 .local/keldock serve --config .local/control.json --migrate
+.local/keldock bootstrap --config .local/control.json --email operator@example.com --output .local/invitation.json
+.local/keldock enroll --config .local/agent.json --cluster local-cluster --token-file .local/enrollment.token
 .local/keldock agent --config .local/agent.json
 ```
 
@@ -24,24 +27,26 @@ in trusted CI and copy only its public-key map to the operator's repository poli
 ## Private configuration
 
 Create configuration and credential files with mode 0600 outside Git. The local fixture
-creates .local with mode 0700. Supply unique random credentials of at least 32 bytes for
-operator, agent and webhook secret; the operator and agent credentials must differ.
+creates .local with mode 0700. Supply an independent random webhook secret of at least
+32 bytes. Accounts, sessions and enrolled agent credentials are issued through their
+separate lifecycles; there are no static operatorTokenFile or agentTokenFile settings.
 
 Control configuration has these fields:
 
-| Field                                                  | Purpose                                                                                  |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| databaseUrl                                            | Operator-supplied PostgreSQL connection; local fixture value is in .local/runtime.json   |
-| listen                                                 | HTTP listen address behind operator-owned HTTPS; local testing uses loopback             |
-| organizationId / clusterId                             | Fixed installation ownership and placement                                               |
-| domain                                                 | Operator-controlled parent domain for stable staging/preview hostnames                   |
-| registryPush / registryPull                            | Same OCI repository path, with host/cluster routing aliases where needed                 |
-| registryUsername / registryPasswordFile                | Optional publisher credential; private pull behavior remains unvalidated                 |
-| operatorTokenFile / agentTokenFile / webhookSecretFile | Separate private credential files                                                        |
-| githubIssuer                                           | `https://token.actions.githubusercontent.com`; loopback issuer requires development mode |
-| githubAudience                                         | Instance-specific Actions OIDC audience                                                  |
-| development / registryPlainHttp                        | Explicit development exceptions; plain registry HTTP requires development mode           |
-| projects                                               | Operator-approved repository policies below                                              |
+| Field                                   | Purpose                                                                                  |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| databaseUrl                             | Operator-supplied PostgreSQL connection; local fixture value is in .local/runtime.json   |
+| listen                                  | HTTP listen address behind operator-owned HTTPS; local testing uses loopback             |
+| publicUrl                               | Canonical external HTTPS console/API origin; CSRF, OAuth and resource audience use this  |
+| organizationId / clusterId              | Fixed installation ownership and placement                                               |
+| domain                                  | Operator-controlled parent domain for stable staging/preview hostnames                   |
+| registryPush / registryPull             | Same OCI repository path, with host/cluster routing aliases where needed                 |
+| registryUsername / registryPasswordFile | Optional publisher credential; private pull behavior remains unvalidated                 |
+| webhookSecretFile                       | Private GitHub webhook signature secret                                                  |
+| githubIssuer                            | `https://token.actions.githubusercontent.com`; loopback issuer requires development mode |
+| githubAudience                          | Instance-specific Actions OIDC audience                                                  |
+| development / registryPlainHttp         | Explicit development exceptions; plain registry HTTP requires development mode           |
+| projects                                | Operator-approved repository policies below                                              |
 
 Each project contains id, name, repositoryId, ownerId, workflowPath, pushRef and
 provenanceKeys. The workflow path is under .github/workflows; pushRef names the allowed
@@ -49,12 +54,18 @@ branch. provenanceKeys maps operator-approved key IDs to base64 Ed25519 public k
 as produced by keygen. GitHub repository and owner IDs protect against silent transfers;
 unsupported reusable-workflow and fork-submission profiles fail closed.
 
-The separate agent configuration contains apiUrl, tokenFile, kubeconfig, context,
+The separate agent configuration contains apiUrl, credentialFile, kubeconfig, context,
 registryPull, registryPlainHttp and development. A supplied kubeconfig requires an
 explicit context; an omitted kubeconfig selects in-cluster identity. API HTTP is allowed
 only for an explicitly selected loopback development endpoint. The agent never follows
-API redirects and receives no database or operator credential. Inspect uses this same
+API redirects and receives no database or human session credential. The one-time
+enrollment action writes its durable identity to credentialFile; the running agent
+rotates it atomically. Inspect uses this same
 configuration to read dependency compatibility without contacting the product API.
+
+Both GitHub issuer and audience may be omitted for account/console-only operation;
+release submission then fails closed with ci_not_configured. Supplying just one is
+invalid. Project repository policies remain operator-owned configuration.
 
 ## Release submission and outcomes
 
@@ -68,14 +79,16 @@ every component's immutable digest, and exact source/workflow/run identity. It s
 CI submits that JSON to POST /v1/releases with its instance-audience OIDC bearer and a
 stable Idempotency-Key. A 202 response contains release/environment/deployment/operation
 IDs, desired generation and statusUrl. Repeating the same request/key returns the same
-receipt; reusing a key with different input conflicts. Operator and agent tokens cannot
+receipt; reusing a key with different input conflicts. Human, MCP and agent credentials cannot
 bypass CI admission. The thin GitHub Action and live feedback remain M3 work.
 
-GET statusUrl accepts the authorized project CI identity or development operator. It
+GET statusUrl accepts the authorized project CI identity, human session or scoped MCP grant. It
 returns operation, observation, observationAgeSeconds and stale. Acceptance is not
 readiness; missing/old observations stay visibly stale. Ready requires the complete
 selected artifact and actual workloads/images. A client that stops waiting does not
-cancel work. POST statusUrl/cancel is an operator action and retains completed effects.
+cancel work. POST statusUrl/cancel is a human operator action with CSRF and retains
+completed effects. POST statusUrl/retry creates a new generation using the admitted
+release, checks expected generation and requires a stable Idempotency-Key.
 
 Signed pull_request webhooks go to POST /v1/github/webhooks. Open/synchronize events
 establish same-repository head state; closure persists teardown intent. Replays, older

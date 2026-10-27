@@ -1,7 +1,8 @@
 # Security and operations
 
-Status: design requirements. No security, availability or recovery guarantees have been
-validated for a runtime in this repository.
+Status: requirements with experimental local evidence. [M2 acceptance](../validation/m2-access-and-console.md)
+tests authentication, current project authority, enrollment/revocation, MCP consent and
+bounded diagnostics. Production security, availability and data recovery remain unvalidated.
 
 ## Trust boundaries
 
@@ -16,7 +17,8 @@ validated for a runtime in this repository.
 | Capability/cloud provisioning | Separate privileged identities and approved profiles; never grant raw provider/IAM/controller access to applications    |
 
 One-organization v1 still needs explicit ownership and negative cross-project tests.
-M1 chooses authentication/session/token details before implementation. Authorization
+The [account and credential contract](../runtime/authentication.md) records the implemented
+session, CSRF, enrollment, rotation and delegated OAuth profile. Authorization
 decisions must come from verified identity and server policy, not caller-provided
 ownership fields, UI controls, skill instructions or tool annotations.
 

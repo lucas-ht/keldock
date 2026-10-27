@@ -1,9 +1,9 @@
 # Disposable runtime validation
 
-Status: experimental core M1 runtime with a working API, worker and outbound agent.
-The Action, MCP endpoint and general installation remain later gates; this is not an alpha.
+Status: experimental runtime with an authenticated API, worker, enrolled outbound agent,
+console and MCP reads. The Action and general installation remain later gates; this is not an alpha.
 See [process commands and configuration](processes.md) and the
-[profile decision](../decisions/0004-first-runtime-profile.md).
+[profile decision](../decisions/0005-shared-authentication-and-remote-mcp.md).
 
 ## Prepare and run
 
@@ -70,7 +70,9 @@ The disposable tests exercise:
 - Compiled serve/agent processes, private configuration, CI attestation, supplied
   dependency inspection, publication and complete five-component health through HTTP.
 - API credential separation, project denial, complete pagination, and rejection of
-  old observations. Agent unit tests cover revocation, outages, supersession and redirects.
+  old observations; durable accounts, CSRF, enrollment, lease/rotation and revocation.
+- A real MCP SDK's OAuth registration, PKCE/consent, refresh and read tools, narrowed
+  project access, redaction and revoked grants. See [M2 evidence](../validation/m2-access-and-console.md).
 
 The release-job fixture records an HTTP side effect. It is not evidence for PostgreSQL
 migrations or data recovery. CronJob readiness proves configured schedule state; it does
@@ -79,7 +81,7 @@ not assert that a scheduled execution completed. Persistent data capabilities re
 ## Limits and inspection
 
 Kubernetes evidence exercises both the registrar/compiler and the API/worker/outbound
-agent. This does not close M2's human auth, enrollment, UI and MCP gates. OIDC tests use
+agent. Private authenticated registry pulls remain an open M2 gate. OIDC tests use
 real RSA verification against a loopback test issuer and separate Ed25519 provenance.
 They do not establish live GitHub App, Actions or feedback behavior. GitHub-hosted CI is
 configured to repeat the disposable suite; no hosted run is claimed by local execution.
@@ -103,6 +105,10 @@ Successful tests clean their disposable application namespaces. Cluster, registr
 database volumes remain for inspection/reuse. A failed test can leave its named namespace;
 inventory and prune its Flux objects before deleting identities or the namespace. Local
 HTTP and unauthenticated registry access are development settings, not a production profile.
+
+The separate [console fixture](console.md) retains synthetic health examples for browser
+inspection. Its HTTP smoke task requires both running console/API processes and does not
+replace the runtime suite or rendered browser QA.
 
 An idle local snapshot on 2026-10-27 used approximately 1.12 GiB for the K3s node
 (including Flux/system pods), 34 MiB for PostgreSQL and 30 MiB for the registry. This is
