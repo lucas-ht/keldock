@@ -1,9 +1,9 @@
 # Keldock implementation plan
 
-Updated 2026-10-27. Milestones are dependency gates, not calendar commitments.
-This is a fresh repository: M0/core M1 and M2 are implemented. By operator decision,
-private GitHub Container Registry (GHCR) pulls belong to M3; additional registry
-profiles follow later. Moving this gate does not claim private pulls were validated.
+Updated 2026-10-28. Milestones are dependency gates, not calendar commitments.
+This is a fresh repository: M0/core M1, M2 and the GitHub.com/GHCR M3 profile are
+implemented. Private GitHub Container Registry (GHCR) pulls were assigned to M3 by
+operator decision and now have live evidence; additional registry profiles follow later.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
 ## First-release target
@@ -32,7 +32,7 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 | M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap            |
 | M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain |
 | M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                              |
-| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Pending                                  |
+| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Implemented; development profile         |
 | M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                                  |
 | M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                    |
 | M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                  |
@@ -88,9 +88,9 @@ The [profile decision](decisions/0004-first-runtime-profile.md) selects packagin
 human authentication, agent enrollment and remote MCP. Capability/resource types do
 not imply installation/allocation APIs. CNPG/restore and cloud keep separate M6/M5 gates.
 
-This runtime advances M2–M4 without closing every gate. Remaining work includes private
-registry pull profiles, thin Action/live GitHub feedback, bounded MCP writes/skills,
-general onboarding and data recovery.
+This runtime advances M2–M4 without closing every gate. The GitHub/GHCR profile is
+implemented in M3. Remaining work includes additional registry profiles, bounded MCP
+writes/skills, general onboarding and data recovery.
 
 ## M2: Durable control plane and local delivery
 
@@ -120,8 +120,8 @@ accounts and project grants; bootstrap/recovery; single-use enrollment, leases, 
 and revocation; a health-first Next.js console with people/cluster/MCP administration;
 retry/cancel and redacted diagnostics; five read tools behind OAuth project consent.
 The SDK flow tests current authority and narrowed access. M2 is accepted within this
-local profile. The registry is intentionally unauthenticated; private GHCR acceptance
-moves to M3. Assistant-host/skill acceptance is M4.
+local profile. Its original registry was intentionally unauthenticated; private GHCR
+acceptance moved to M3. Assistant-host/skill acceptance is M4.
 
 ## M3: GitHub CI integration and feedback
 
@@ -148,6 +148,14 @@ Local webhook fixtures do not replace live GitHub integration evidence.
 M3 supports GHCR first. AWS/ECR, Docker Hub and private Harbor-style registries remain
 later profiles, with their own authentication, refresh, TLS and access tests. Keep the
 internal credential boundary extensible without advertising unimplemented adapters.
+
+Implemented and [validated](validation/m3-github-delivery.md): installation-owned App
+setup, stable repository delegation, signed durable events/recovery, the thin OIDC
+Action, private GHCR bundle/workload pulls, and durable GitHub feedback. Live acceptance
+covered rotation/revocation, rename/transfer and scoped reinstallation, replay, stale
+workflow rejection, lost acceptance, runner cancellation, timeout, reporting interruption,
+PR head/merge identity and preview cleanup. This accepts the development profile;
+general installation, cloud operation and production readiness remain separate gates.
 
 ### Live acceptance prerequisites
 

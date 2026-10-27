@@ -21,8 +21,9 @@ package, chart, runtime acceptance command or supported dependency matrix existe
 
 This table records M0 only. Current M1 code and local runtime evidence are described in
 the [runtime guide](../runtime/local-development.md); it supersedes the bootstrap's
-absence of a runtime acceptance command. The experimental core M1 is implemented;
-live GitHub/cloud, MCP-host and data-recovery evidence is still absent.
+absence of a runtime acceptance command. The experimental core M1 is implemented.
+Later [M2 evidence](m2-access-and-console.md) and [M3 GitHub delivery evidence](m3-github-delivery.md)
+record subsequent implementation; cloud, assistant-host and data-recovery gates remain separate.
 
 ## Core M1 acceptance
 

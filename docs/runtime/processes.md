@@ -3,8 +3,8 @@
 This is a developer profile with local accounts, enrolled agents and delegated MCP reads.
 Use [the disposable acceptance environment](local-development.md) to reproduce its
 tested behavior. See [authentication and recovery](authentication.md) and the
-[console guide](console.md). General installation and GitHub App onboarding are later
-gates; no production deployment is implied by these commands.
+[console guide](console.md). [GitHub App delivery](github-delivery.md) has an experimental
+integration; general installation remains a later gate. These commands imply no production deployment.
 
 ## Commands
 
@@ -41,7 +41,8 @@ Control configuration has these fields:
 | organizationId / clusterId              | Fixed installation ownership and placement                                               |
 | domain                                  | Operator-controlled parent domain for stable staging/preview hostnames                   |
 | registryPush / registryPull             | Same OCI repository path, with host/cluster routing aliases where needed                 |
-| registryUsername / registryPasswordFile | Optional publisher credential; private pull behavior remains unvalidated                 |
+| registryUsername / registryPasswordFile | Optional bundle publisher credential, separate from cluster readers                      |
+| githubCredentialsFile                   | Owner-only App credential destination; enables GitHub setup, selection and feedback      |
 | webhookSecretFile                       | Private GitHub webhook signature secret                                                  |
 | githubIssuer                            | `https://token.actions.githubusercontent.com`; loopback issuer requires development mode |
 | githubAudience                          | Instance-specific Actions OIDC audience                                                  |
@@ -55,7 +56,7 @@ as produced by keygen. GitHub repository and owner IDs protect against silent tr
 unsupported reusable-workflow and fork-submission profiles fail closed.
 
 The separate agent configuration contains apiUrl, credentialFile, kubeconfig, context,
-registryPull, registryPlainHttp and development. A supplied kubeconfig requires an
+registryCredentialsFile, registryPull, registryPlainHttp and development. A supplied kubeconfig requires an
 explicit context; an omitted kubeconfig selects in-cluster identity. API HTTP is allowed
 only for an explicitly selected loopback development endpoint. The agent never follows
 API redirects and receives no database or human session credential. The one-time
@@ -80,7 +81,7 @@ CI submits that JSON to POST /v1/releases with its instance-audience OIDC bearer
 stable Idempotency-Key. A 202 response contains release/environment/deployment/operation
 IDs, desired generation and statusUrl. Repeating the same request/key returns the same
 receipt; reusing a key with different input conflicts. Human, MCP and agent credentials cannot
-bypass CI admission. The thin GitHub Action and live feedback remain M3 work.
+bypass CI admission. The [thin Action](github-delivery.md) consumes these same APIs.
 
 GET statusUrl accepts the authorized project CI identity, human session or scoped MCP grant. It
 returns operation, observation, observationAgeSeconds and stale. Acceptance is not
@@ -94,4 +95,5 @@ Signed pull_request webhooks go to POST /v1/github/webhooks. Open/synchronize ev
 establish same-repository head state; closure persists teardown intent. Replays, older
 events and late CI cannot reopen a closed preview. A strictly newer explicit reopen can
 permit a new release. The local suite exercises these routes with a loopback JWKS issuer
-and signed webhook fixtures; no live GitHub integration is claimed.
+and signed webhook fixtures; live App/Actions/GHCR results are recorded separately in
+[M3 validation](../validation/m3-github-delivery.md).

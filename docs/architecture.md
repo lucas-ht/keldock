@@ -1,6 +1,6 @@
 # Keldock architecture
 
-Updated 2026-10-27. Accepted design with an experimental core runtime. Current code and
+Updated 2026-10-28. Accepted design with an experimental core runtime. Current code and
 local evidence are recorded in the [runtime guide](runtime/local-development.md);
 unimplemented product and expansion gates remain explicit in the implementation plan.
 
@@ -91,8 +91,11 @@ for a modular API/worker and outbound agent/registrar, with PostgreSQL for durab
 The [first runtime profile](decisions/0004-first-runtime-profile.md) selects development
 packaging. [Shared authentication](decisions/0005-shared-authentication-and-remote-mcp.md)
 now protects a Next.js/React console, enrolled agents and a remote read-only MCP adapter.
-The console prioritizes deployment health and exposes account, cluster and MCP lifecycle
-management. The thin Action remains M3. Pin dependencies with implementation evidence.
+The console prioritizes deployment health and exposes account, cluster, GitHub and MCP
+lifecycle management. The [GitHub delivery profile](runtime/github-delivery.md) adds
+installation-owned App setup, a thin OIDC Action, durable feedback and scoped private
+GHCR pull credentials. CI publication, bundle publication and cluster readers retain
+separate authority. Pin dependencies with implementation evidence.
 
 Validate a PostgreSQL outbox/leased-worker default. Temporal may be an optional future
 engine profile; it is not required for the minimum installation. Internal workflow

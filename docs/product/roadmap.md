@@ -1,6 +1,6 @@
 # Expansion roadmap
 
-Updated 2026-10-27. Future work; no dates, pricing or service levels are promised.
+Updated 2026-10-28. Future work; no dates, pricing or service levels are promised.
 The [implementation plan](../implementation-plan.md) owns M0–M6 and current status.
 
 ## First-release boundary
@@ -15,10 +15,11 @@ deployment-first console and consented MCP reads. These keep the future hosted b
 concrete while leaving capability installation, skills and hosted tenancy behind their
 own evidence gates. See [current validation](../validation/m2-access-and-console.md).
 
-M2 is accepted for its tested local profile. M3 adds private GHCR pulls alongside GitHub
-App/Actions/feedback acceptance. AWS/ECR, Docker Hub and private Harbor-style registries
-follow later, each with separate credential lifecycle and access evidence. No private
-registry profile is currently validated by the unauthenticated disposable registry.
+M2 is accepted for its tested local profile. M3 implements private GHCR pulls alongside
+GitHub App/Actions/feedback, with [separate live acceptance](../validation/m3-github-delivery.md).
+AWS/ECR, Docker Hub and private Harbor-style registries follow later, each with separate
+credential lifecycle and access evidence. The disposable registry also tests authenticated
+pull projection; its local credentials do not establish GitHub package permissions.
 
 ## M5: Optional AWS resources
 

@@ -60,6 +60,12 @@ separate OAuth consent screen requires an explicit project selection. Account ch
 and password recovery remain available in the FOSS core. Forms show failures and retain
 safe input; secrets appear only after their explicit one-time creation action.
 
+GitHub delivery supports manifest/existing-App setup, credential rotation, selected
+repository inventory, local disconnection, synchronization and failed-delivery recovery.
+Its administrator actions use the same session, CSRF and current-authority checks.
+Private GHCR reader configuration is a separate operator-owned agent profile; the App
+cannot replace that registry credential. See [GitHub delivery](github-delivery.md).
+
 The console uses asynchronous request cookies and uncached API reads, following the
 [Next.js authentication guidance](https://nextjs.org/docs/app/guides/authentication).
 Server rendering forwards only the session cookie to the configured internal API origin.

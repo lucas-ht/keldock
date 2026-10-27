@@ -23,9 +23,10 @@ The console leads with deployment health, with separate people, cluster and MCP 
 management. [Disposable tests](docs/validation/m2-access-and-console.md) exercise real
 PostgreSQL, Kubernetes, HTTP and an OAuth-enabled MCP SDK client.
 
-M2 is accepted for the local profile. Private GHCR pulls, live GitHub integration and
-the thin Action are M3; other registries, MCP writes, skills and general installation
-retain their later milestone gates. This is not a packaged
+M2 is accepted for the local profile. M3 adds [GitHub App setup, the thin Action, durable
+feedback and private GHCR pulls](docs/runtime/github-delivery.md), with [live acceptance
+evidence](docs/validation/m3-github-delivery.md). Other registries, MCP writes, skills
+and general installation retain their later milestone gates. This is not a packaged
 self-hosted alpha or a production-validation claim.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service

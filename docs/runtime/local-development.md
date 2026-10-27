@@ -1,7 +1,7 @@
 # Disposable runtime validation
 
 Status: experimental runtime with an authenticated API, worker, enrolled outbound agent,
-console and MCP reads. The Action and general installation remain later gates; this is not an alpha.
+console, MCP reads and GitHub delivery. General installation remains a later gate; this is not an alpha.
 See [process commands and configuration](processes.md) and the
 [profile decision](../decisions/0005-shared-authentication-and-remote-mcp.md).
 
@@ -19,14 +19,15 @@ mise exec -- task local:test
 and runs real PostgreSQL and Kubernetes tests. The test harness builds that fixture;
 Keldock's compiler and worker consume prebuilt image digests and do not run builds.
 
-| Target                         | Exact local scope                                      |
-| ------------------------------ | ------------------------------------------------------ |
-| Docker Compose project/network | keldock-m1                                             |
-| Cluster/context                | keldock-m1 / k3d-keldock-m1                            |
-| Kubernetes API                 | 127.0.0.1:16443                                        |
-| HTTP ingress                   | 127.0.0.1:18080 with an explicit test Host header      |
-| Registry                       | 127.0.0.1:5010; cluster alias keldock-m1-registry:5000 |
-| PostgreSQL                     | 127.0.0.1:55432, database keldock                      |
+| Target                         | Exact local scope                                              |
+| ------------------------------ | -------------------------------------------------------------- |
+| Docker Compose project/network | keldock-m1                                                     |
+| Cluster/context                | keldock-m1 / k3d-keldock-m1                                    |
+| Kubernetes API                 | 127.0.0.1:16443                                                |
+| HTTP ingress                   | 127.0.0.1:18080 with an explicit test Host header              |
+| Registry                       | 127.0.0.1:5010; cluster alias keldock-m1-registry:5000         |
+| Authenticated registry         | 127.0.0.1:5011; cluster alias keldock-m1-private-registry:5000 |
+| PostgreSQL                     | 127.0.0.1:55432, database keldock                              |
 
 There is no cloud account or Terraform backend. The bootstrap refuses unrelated
 same-named networks/clusters and uses .local/kubeconfig without changing the default
@@ -73,6 +74,10 @@ The disposable tests exercise:
   old observations; durable accounts, CSRF, enrollment, lease/rotation and revocation.
 - A real MCP SDK's OAuth registration, PKCE/consent, refresh and read tools, narrowed
   project access, redaction and revoked grants. See [M2 evidence](../validation/m2-access-and-console.md).
+- Authenticated OCI bundle/workload pulls, distinct projected Secrets, credential
+  rotation, removal, denied cold-image pulls and recovery without rebuilding releases.
+- GitHub delegation, signed delivery persistence/leases, missed-event repair, setup
+  state/configuration fencing and partial feedback recovery against a local upstream.
 
 The release-job fixture records an HTTP side effect. It is not evidence for PostgreSQL
 migrations or data recovery. CronJob readiness proves configured schedule state; it does
@@ -81,10 +86,12 @@ not assert that a scheduled execution completed. Persistent data capabilities re
 ## Limits and inspection
 
 Kubernetes evidence exercises both the registrar/compiler and the API/worker/outbound
-agent. Private GHCR pulls are an M3 gate; other registry profiles follow later. OIDC tests use
-real RSA verification against a loopback test issuer and separate Ed25519 provenance.
-They do not establish live GitHub App, Actions or feedback behavior. GitHub-hosted CI is
-configured to repeat the disposable suite; no hosted run is claimed by local execution.
+agent. Its authenticated local registry exercises the projection contract, rather than
+GitHub package permissions. Local OIDC tests use real RSA verification against a
+loopback issuer and separate Ed25519 provenance. Dedicated [M3 evidence](../validation/m3-github-delivery.md)
+records live GitHub App, Actions, GHCR and feedback acceptance separately. Other registry
+profiles follow later. GitHub-hosted CI repeats the disposable suite; a local run alone
+does not establish hosted execution.
 
 The registrar owns its generated specifications with resource-version checks, preserves
 controller status/finalizers, rejects foreign/newer ownership, and retries conflicts.
