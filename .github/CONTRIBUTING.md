@@ -2,6 +2,8 @@
 
 Keldock is at repository-bootstrap stage. Prefer small changes that advance a complete
 user workflow. Design documents are requirements, not claims of implemented behavior.
+Start with the [architecture](../docs/architecture.md) and
+[implementation plan](../docs/implementation-plan.md).
 
 ## Setup
 
