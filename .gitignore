@@ -2,6 +2,11 @@ node_modules/
 .local/
 coverage/
 reports/
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/
+.impeccable/questions/
+**/.next/
 .DS_Store
 .env
 .env.*

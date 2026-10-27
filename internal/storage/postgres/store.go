@@ -30,6 +30,10 @@ var (
 // Store owns a bounded connection pool; callers must close it during shutdown.
 type Store struct{ pool *pgxpool.Pool }
 
+// Pool shares the installation's bounded pool with its scoped persistence modules.
+// The owning Store remains responsible for closing it.
+func (store *Store) Pool() *pgxpool.Pool { return store.pool }
+
 // Open connects without changing the schema or creating installation ownership.
 func Open(ctx context.Context, connection string) (*Store, error) {
 	config, err := pgxpool.ParseConfig(connection)
