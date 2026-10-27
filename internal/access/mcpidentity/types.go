@@ -58,6 +58,7 @@ type Connection struct {
 	UserID     string     `json:"userId"`
 	UserName   string     `json:"userName"`
 	Projects   []string   `json:"projects"`
+	Scope      string     `json:"scope"`
 	Resource   string     `json:"resource"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	ExpiresAt  time.Time  `json:"expiresAt"`

@@ -19,8 +19,9 @@ func (repository *Repository) CreateAuthorization(ctx context.Context, input Aut
 	if err != nil || len(challenge) != 32 || len(input.Challenge) != 43 || input.ChallengeMethod != "S256" || input.ResponseType != "code" || input.Resource != repository.Resource || len(input.State) > 1024 || !utf8.ValidString(input.State) || strings.ContainsRune(input.State, 0) {
 		return "", access.ErrInvalid
 	}
-	if input.Scope != "" && input.Scope != ReadScope {
-		return "", access.ErrInvalid
+	scope, err := NormalizeScope(input.Scope)
+	if err != nil {
+		return "", err
 	}
 	tx, err := repository.pool.Begin(ctx)
 	if err != nil {
@@ -48,7 +49,7 @@ func (repository *Repository) CreateAuthorization(ctx context.Context, input Aut
 		return "", access.ErrLimited
 	}
 	id := access.NewID("authreq")
-	_, err = tx.Exec(ctx, `INSERT INTO access_oauth_requests (id,client_id,redirect_uri,state,challenge,resource,expires_at) VALUES ($1,$2,$3,$4,$5,$6,now()+interval '5 minutes')`, id, client.ID, input.RedirectURI, input.State, input.Challenge, input.Resource)
+	_, err = tx.Exec(ctx, `INSERT INTO access_oauth_requests (id,client_id,redirect_uri,state,challenge,resource,scope,expires_at) VALUES ($1,$2,$3,$4,$5,$6,$7,now()+interval '5 minutes')`, id, client.ID, input.RedirectURI, input.State, input.Challenge, input.Resource, scope)
 	if err != nil {
 		return "", err
 	}
@@ -61,10 +62,9 @@ func (repository *Repository) Authorization(ctx context.Context, principal acces
 		return AuthorizationRequest{}, access.ErrDenied
 	}
 	var result AuthorizationRequest
-	result.Scope = ReadScope
-	err := repository.pool.QueryRow(ctx, `SELECT r.id,c.id,c.name,r.redirect_uri,r.resource,r.expires_at FROM access_oauth_requests r
+	err := repository.pool.QueryRow(ctx, `SELECT r.id,c.id,c.name,r.redirect_uri,r.resource,r.scope,r.expires_at FROM access_oauth_requests r
 JOIN access_mcp_clients c ON c.id=r.client_id JOIN access_mcp_settings s ON s.organization_id=c.organization_id
-WHERE r.id=$1 AND c.organization_id=$2 AND c.disabled_at IS NULL AND s.enabled AND r.consumed_at IS NULL AND r.expires_at>now()`, id, repository.users.Organization).Scan(&result.ID, &result.ClientID, &result.ClientName, &result.RedirectURI, &result.Resource, &result.ExpiresAt)
+WHERE r.id=$1 AND c.organization_id=$2 AND c.disabled_at IS NULL AND s.enabled AND r.consumed_at IS NULL AND r.expires_at>now()`, id, repository.users.Organization).Scan(&result.ID, &result.ClientID, &result.ClientName, &result.RedirectURI, &result.Resource, &result.Scope, &result.ExpiresAt)
 	if err == pgx.ErrNoRows {
 		return result, access.ErrNotFound
 	}
@@ -89,9 +89,9 @@ func (repository *Repository) Consent(ctx context.Context, principal access.Prin
 	if err := repository.requireEnabled(ctx, tx); err != nil {
 		return "", err
 	}
-	var client, redirect, state, challenge, resource string
-	err = tx.QueryRow(ctx, `SELECT r.client_id,r.redirect_uri,r.state,r.challenge,r.resource FROM access_oauth_requests r JOIN access_mcp_clients c ON c.id=r.client_id
-WHERE r.id=$1 AND c.organization_id=$2 AND c.disabled_at IS NULL AND r.consumed_at IS NULL AND r.expires_at>now() FOR UPDATE OF r FOR SHARE OF c`, id, repository.users.Organization).Scan(&client, &redirect, &state, &challenge, &resource)
+	var client, redirect, state, challenge, resource, scope string
+	err = tx.QueryRow(ctx, `SELECT r.client_id,r.redirect_uri,r.state,r.challenge,r.resource,r.scope FROM access_oauth_requests r JOIN access_mcp_clients c ON c.id=r.client_id
+WHERE r.id=$1 AND c.organization_id=$2 AND c.disabled_at IS NULL AND r.consumed_at IS NULL AND r.expires_at>now() FOR UPDATE OF r FOR SHARE OF c`, id, repository.users.Organization).Scan(&client, &redirect, &state, &challenge, &resource, &scope)
 	if err != nil {
 		return "", access.ErrDenied
 	}
@@ -109,7 +109,7 @@ WHERE r.id=$1 AND c.organization_id=$2 AND c.disabled_at IS NULL AND r.consumed_
 		current := access.Principal{User: user, Kind: "session"}
 		seen := map[string]bool{}
 		for _, project := range projects {
-			if !v1.ValidName(project) || seen[project] || !current.CanRead(project) {
+			if !v1.ValidName(project) || seen[project] || !current.CanRead(project) || (scope == OperationScope && !current.CanOperate(project)) {
 				return "", access.ErrDenied
 			}
 			seen[project] = true
@@ -126,7 +126,7 @@ WHERE r.id=$1 AND c.organization_id=$2 AND c.disabled_at IS NULL AND r.consumed_
 			return "", err
 		}
 		grant, code := access.NewID("grant"), access.NewToken("kmc_")
-		if _, err := tx.Exec(ctx, `INSERT INTO access_mcp_grants (id,client_id,user_id,user_version,project_ids,resource) VALUES ($1,$2,$3,$4,$5,$6)`, grant, client, user.ID, user.Version, data, resource); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO access_mcp_grants (id,client_id,user_id,user_version,project_ids,resource,scope) VALUES ($1,$2,$3,$4,$5,$6,$7)`, grant, client, user.ID, user.Version, data, resource, scope); err != nil {
 			return "", err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO access_oauth_codes (token_hash,grant_id,redirect_uri,challenge,expires_at) VALUES ($1,$2,$3,$4,now()+interval '60 seconds')`, access.TokenHash(code), grant, redirect, challenge); err != nil {

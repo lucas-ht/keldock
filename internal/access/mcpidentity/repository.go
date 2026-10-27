@@ -1,4 +1,4 @@
-// Package mcpidentity owns the bounded OAuth authorization profile for MCP read access.
+// Package mcpidentity owns the bounded OAuth authorization profile for scoped MCP access.
 package mcpidentity
 
 import (
@@ -14,8 +14,11 @@ import (
 	"github.com/lucas-ht/keldock/internal/access"
 )
 
-// ReadScope is the only permission exposed by the first MCP adapter.
+// ReadScope permits inspection; operation consent is a separate explicit scope.
 const ReadScope = "keldock:read"
+
+// OperateScope permits only the bounded nonproduction operation surface.
+const OperateScope = "keldock:operate"
 
 // Repository binds all OAuth credentials to one organization and canonical MCP resource.
 type Repository struct {

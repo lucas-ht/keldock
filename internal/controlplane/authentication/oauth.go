@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 
 	"github.com/lucas-ht/keldock/internal/access"
 
@@ -37,13 +36,13 @@ func oauthCORS(w http.ResponseWriter) { w.Header().Set("Access-Control-Allow-Ori
 
 func (service *Service) resourceMetadata(w http.ResponseWriter, _ *http.Request) {
 	oauthCORS(w)
-	write(w, http.StatusOK, map[string]any{"resource": service.MCP.Resource, "authorization_servers": []string{service.MCP.Issuer}, "scopes_supported": []string{mcpidentity.ReadScope}, "bearer_methods_supported": []string{"header"}, "resource_name": "Keldock read tools"})
+	write(w, http.StatusOK, map[string]any{"resource": service.MCP.Resource, "authorization_servers": []string{service.MCP.Issuer}, "scopes_supported": []string{mcpidentity.ReadScope, mcpidentity.OperateScope}, "bearer_methods_supported": []string{"header"}, "resource_name": "Keldock deployment tools"})
 }
 
 func (service *Service) serverMetadata(w http.ResponseWriter, _ *http.Request) {
 	oauthCORS(w)
 	issuer := service.MCP.Issuer
-	write(w, http.StatusOK, map[string]any{"issuer": issuer, "authorization_endpoint": issuer + "/oauth/authorize", "token_endpoint": issuer + "/oauth/token", "registration_endpoint": issuer + "/oauth/register", "response_types_supported": []string{"code"}, "grant_types_supported": []string{"authorization_code", "refresh_token"}, "token_endpoint_auth_methods_supported": []string{"none"}, "code_challenge_methods_supported": []string{"S256"}, "scopes_supported": []string{mcpidentity.ReadScope}, "authorization_response_iss_parameter_supported": true})
+	write(w, http.StatusOK, map[string]any{"issuer": issuer, "authorization_endpoint": issuer + "/oauth/authorize", "token_endpoint": issuer + "/oauth/token", "registration_endpoint": issuer + "/oauth/register", "response_types_supported": []string{"code"}, "grant_types_supported": []string{"authorization_code", "refresh_token"}, "token_endpoint_auth_methods_supported": []string{"none"}, "code_challenge_methods_supported": []string{"S256"}, "scopes_supported": []string{mcpidentity.ReadScope, mcpidentity.OperateScope}, "authorization_response_iss_parameter_supported": true})
 }
 
 func oauthError(w http.ResponseWriter, status int, code string) {
@@ -76,7 +75,9 @@ func (service *Service) registerPublicClient(w http.ResponseWriter, request *htt
 		oauthError(w, http.StatusBadRequest, "invalid_client_metadata")
 		return
 	}
-	if err := json.Unmarshal(body, &input); err != nil || (input.AuthMethod != "" && input.AuthMethod != "none") || (input.Scope != "" && input.Scope != mcpidentity.ReadScope) || slices.ContainsFunc(input.Grants, func(value string) bool { return value != "authorization_code" && value != "refresh_token" }) || slices.ContainsFunc(input.Responses, func(value string) bool { return value != "code" }) {
+	decodeError := json.Unmarshal(body, &input)
+	scope, scopeError := mcpidentity.NormalizeScope(input.Scope)
+	if decodeError != nil || (input.AuthMethod != "" && input.AuthMethod != "none") || scopeError != nil || slices.ContainsFunc(input.Grants, func(value string) bool { return value != "authorization_code" && value != "refresh_token" }) || slices.ContainsFunc(input.Responses, func(value string) bool { return value != "code" }) {
 		oauthError(w, http.StatusBadRequest, "invalid_client_metadata")
 		return
 	}
@@ -88,7 +89,7 @@ func (service *Service) registerPublicClient(w http.ResponseWriter, request *htt
 		oauthError(w, http.StatusBadRequest, "invalid_client_metadata")
 		return
 	}
-	write(w, http.StatusCreated, map[string]any{"client_id": client.ID, "client_name": client.Name, "redirect_uris": client.RedirectURIs, "token_endpoint_auth_method": "none", "grant_types": []string{"authorization_code", "refresh_token"}, "response_types": []string{"code"}, "scope": mcpidentity.ReadScope})
+	write(w, http.StatusCreated, map[string]any{"client_id": client.ID, "client_name": client.Name, "redirect_uris": client.RedirectURIs, "token_endpoint_auth_method": "none", "grant_types": []string{"authorization_code", "refresh_token"}, "response_types": []string{"code"}, "scope": scope})
 }
 
 func singleton(values url.Values, keys ...string) bool {
@@ -131,16 +132,16 @@ func (service *Service) token(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	input := request.PostForm
-	if scope := strings.TrimSpace(input.Get("scope")); scope != "" && scope != mcpidentity.ReadScope {
+	if _, err := mcpidentity.NormalizeScope(input.Get("scope")); err != nil {
 		oauthError(w, http.StatusBadRequest, "invalid_scope")
 		return
 	}
 	var pair mcpidentity.TokenPair
 	switch input.Get("grant_type") {
 	case "authorization_code":
-		pair, err = service.MCP.Exchange(request.Context(), input.Get("client_id"), input.Get("redirect_uri"), input.Get("resource"), input.Get("code"), input.Get("code_verifier"))
+		pair, err = service.MCP.Exchange(request.Context(), input.Get("client_id"), input.Get("redirect_uri"), input.Get("resource"), input.Get("code"), input.Get("code_verifier"), input.Get("scope"))
 	case "refresh_token":
-		pair, err = service.MCP.Refresh(request.Context(), input.Get("client_id"), input.Get("resource"), input.Get("refresh_token"))
+		pair, err = service.MCP.Refresh(request.Context(), input.Get("client_id"), input.Get("resource"), input.Get("refresh_token"), input.Get("scope"))
 	default:
 		oauthError(w, http.StatusBadRequest, "unsupported_grant_type")
 		return

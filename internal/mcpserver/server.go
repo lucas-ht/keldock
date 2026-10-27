@@ -36,7 +36,7 @@ func Handler(identity *mcpidentity.Repository, reads *inspection.Service) http.H
 		if err != nil {
 			return nil, fmt.Errorf("authentication unavailable")
 		}
-		return &auth.TokenInfo{Scopes: []string{mcpidentity.ReadScope}, Expiration: expiry, UserID: principal.GrantID}, nil
+		return &auth.TokenInfo{Scopes: strings.Fields(principal.TokenScope), Expiration: expiry, UserID: principal.GrantID}, nil
 	}
 	authenticated := auth.RequireBearerToken(verify, &auth.RequireBearerTokenOptions{ResourceMetadataURL: identity.Issuer + "/.well-known/oauth-protected-resource/mcp", Scopes: []string{mcpidentity.ReadScope}})(transport)
 	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {

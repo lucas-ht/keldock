@@ -106,6 +106,7 @@ export type MCPClient = {
 };
 export type Connection = {
   id: string;
+  scope: string;
   clientId: string;
   clientName: string;
   userId: string;

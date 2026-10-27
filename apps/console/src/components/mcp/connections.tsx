@@ -32,7 +32,10 @@ export function Connections({ items }: { items: Connection[] }) {
               <div className="min-w-0">
                 <h3 className="font-medium">{connection.clientName}</h3>
                 <p>
-                  {connection.userName} · {connection.projects.join(", ")}
+                  {connection.userName} · {connection.projects.join(", ")} ·{" "}
+                  {connection.scope?.includes("keldock:operate")
+                    ? "Nonproduction operations"
+                    : "Read only"}
                 </p>
                 <p>
                   Last used {date(connection.lastUsedAt)} · Expires{" "}
@@ -54,7 +57,8 @@ export function Connections({ items }: { items: Connection[] }) {
         ) : (
           <EmptyState title="No MCP connections yet">
             Connections appear after a client completes authorization. Access is
-            always read-only and project scoped.
+            project scoped. Deployment operations require separate explicit
+            consent.
           </EmptyState>
         )}
       </div>

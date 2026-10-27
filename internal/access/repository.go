@@ -61,7 +61,15 @@ func (repository *Repository) User(ctx context.Context, id string) (User, error)
 
 // RequireHuman revalidates account version and keeps its authority stable through a transaction.
 func (repository *Repository) RequireHuman(ctx context.Context, tx pgx.Tx, principal Principal) (User, error) {
-	if principal.Kind != "session" || principal.User.OrganizationID != repository.Organization {
+	if principal.Kind != "session" {
+		return User{}, ErrDenied
+	}
+	return repository.CurrentUser(ctx, tx, principal)
+}
+
+// CurrentUser locks and revalidates current account authority for a shared transaction.
+func (repository *Repository) CurrentUser(ctx context.Context, tx pgx.Tx, principal Principal) (User, error) {
+	if principal.User.OrganizationID != repository.Organization {
 		return User{}, ErrDenied
 	}
 	var version int64

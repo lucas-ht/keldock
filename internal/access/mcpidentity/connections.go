@@ -14,7 +14,7 @@ func (repository *Repository) Connections(ctx context.Context, principal access.
 	if principal.Kind != "session" || principal.User.OrganizationID != repository.users.Organization || (all && !principal.IsAdmin()) {
 		return nil, "", access.ErrDenied
 	}
-	rows, err := repository.pool.Query(ctx, `SELECT g.id,c.id,c.name,u.id,u.name,g.project_ids,g.resource,g.created_at,g.created_at+interval '30 days',g.last_used_at,g.revoked_at
+	rows, err := repository.pool.Query(ctx, `SELECT g.id,c.id,c.name,u.id,u.name,g.project_ids,g.resource,g.scope,g.created_at,g.created_at+interval '30 days',g.last_used_at,g.revoked_at
 FROM access_mcp_grants g JOIN access_mcp_clients c ON c.id=g.client_id JOIN access_users u ON u.id=g.user_id
 WHERE c.organization_id=$1 AND (g.user_id=$2 OR $3) AND g.id>$4 ORDER BY g.id LIMIT 51`, repository.users.Organization, principal.User.ID, all, after)
 	if err != nil {
@@ -25,7 +25,7 @@ WHERE c.organization_id=$1 AND (g.user_id=$2 OR $3) AND g.id>$4 ORDER BY g.id LI
 	for rows.Next() {
 		var connection Connection
 		var projects []byte
-		if err := rows.Scan(&connection.ID, &connection.ClientID, &connection.ClientName, &connection.UserID, &connection.UserName, &projects, &connection.Resource, &connection.CreatedAt, &connection.ExpiresAt, &connection.LastUsedAt, &connection.RevokedAt); err != nil {
+		if err := rows.Scan(&connection.ID, &connection.ClientID, &connection.ClientName, &connection.UserID, &connection.UserName, &projects, &connection.Resource, &connection.Scope, &connection.CreatedAt, &connection.ExpiresAt, &connection.LastUsedAt, &connection.RevokedAt); err != nil {
 			return nil, "", err
 		}
 		if err := json.Unmarshal(projects, &connection.Projects); err != nil {

@@ -24,11 +24,11 @@ func validVerifier(value string) bool {
 }
 
 func (repository *Repository) grant(ctx context.Context, tx pgx.Tx, id, client string) (access.Principal, time.Time, error) {
-	var userID, resource string
+	var userID, resource, scope string
 	var version int64
 	var projects []byte
 	var created time.Time
-	err := tx.QueryRow(ctx, `SELECT user_id,user_version,project_ids,resource,created_at FROM access_mcp_grants WHERE id=$1 AND client_id=$2 AND revoked_at IS NULL AND created_at>now()-interval '30 days'`, id, client).Scan(&userID, &version, &projects, &resource, &created)
+	err := tx.QueryRow(ctx, `SELECT user_id,user_version,project_ids,resource,scope,created_at FROM access_mcp_grants WHERE id=$1 AND client_id=$2 AND revoked_at IS NULL AND created_at>now()-interval '30 days'`, id, client).Scan(&userID, &version, &projects, &resource, &scope, &created)
 	if err != nil || resource != repository.Resource {
 		return access.Principal{}, created, access.ErrDenied
 	}
@@ -47,26 +47,26 @@ func (repository *Repository) grant(ctx context.Context, tx pgx.Tx, id, client s
 	if err != nil {
 		return access.Principal{}, created, err
 	}
-	principal := access.Principal{User: user, Kind: "mcp", GrantID: id}
+	principal := access.Principal{User: user, Kind: "mcp", GrantID: id, TokenScope: scope}
 	if err := json.Unmarshal(projects, &principal.TokenProjects); err != nil {
 		return principal, created, err
 	}
 	return principal, created, nil
 }
 
-func issueTokens(ctx context.Context, tx pgx.Tx, grant string, created time.Time) (TokenPair, error) {
+func issueTokens(ctx context.Context, tx pgx.Tx, grant string, created time.Time, scope string) (TokenPair, error) {
 	remaining := time.Until(created.Add(30 * 24 * time.Hour))
 	if remaining <= 0 {
 		return TokenPair{}, access.ErrDenied
 	}
 	lifetime := min(time.Hour, remaining)
-	pair := TokenPair{AccessToken: access.NewToken("kma_"), TokenType: "Bearer", ExpiresIn: int64(lifetime.Seconds()), RefreshToken: access.NewToken("kmr_"), Scope: ReadScope}
+	pair := TokenPair{AccessToken: access.NewToken("kma_"), TokenType: "Bearer", ExpiresIn: int64(lifetime.Seconds()), RefreshToken: access.NewToken("kmr_"), Scope: scope}
 	_, err := tx.Exec(ctx, `INSERT INTO access_mcp_tokens (token_hash,grant_id,kind,expires_at) VALUES ($1,$2,'access',now()+make_interval(secs=>$3)),($4,$2,'refresh',$5)`, access.TokenHash(pair.AccessToken), grant, lifetime.Seconds(), access.TokenHash(pair.RefreshToken), created.Add(30*24*time.Hour))
 	return pair, err
 }
 
 // Exchange enforces one-time codes, exact redirect/resource binding and S256 proof.
-func (repository *Repository) Exchange(ctx context.Context, client, redirect, resource, code, verifier string) (TokenPair, error) {
+func (repository *Repository) Exchange(ctx context.Context, client, redirect, resource, code, verifier string, requestedScope ...string) (TokenPair, error) {
 	if resource != repository.Resource || !validVerifier(verifier) || len(code) > 128 {
 		return TokenPair{}, access.ErrInvalid
 	}
@@ -101,14 +101,17 @@ func (repository *Repository) Exchange(ctx context.Context, client, redirect, re
 		}
 		return TokenPair{}, access.ErrDenied
 	}
-	_, created, err := repository.grant(ctx, tx, grant, client)
+	principal, created, err := repository.grant(ctx, tx, grant, client)
 	if err != nil {
 		return TokenPair{}, err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE access_oauth_codes SET consumed_at=now() WHERE token_hash=$1`, access.TokenHash(code)); err != nil {
 		return TokenPair{}, err
 	}
-	pair, err := issueTokens(ctx, tx, grant, created)
+	if !matchesScope(principal.TokenScope, requestedScope) {
+		return TokenPair{}, access.ErrInvalid
+	}
+	pair, err := issueTokens(ctx, tx, grant, created, principal.TokenScope)
 	if err != nil {
 		return TokenPair{}, err
 	}
@@ -123,7 +126,7 @@ func revokeReplay(ctx context.Context, tx pgx.Tx, organization, grant, event str
 }
 
 // Refresh rotates refresh credentials; reuse revokes the whole connection family.
-func (repository *Repository) Refresh(ctx context.Context, client, resource, refresh string) (TokenPair, error) {
+func (repository *Repository) Refresh(ctx context.Context, client, resource, refresh string, requestedScope ...string) (TokenPair, error) {
 	// RFC 8707 permits an omitted resource on refresh. The stored grant remains
 	// bound to this exact installation; an explicit different resource is denied.
 	if resource == "" {
@@ -158,14 +161,17 @@ func (repository *Repository) Refresh(ctx context.Context, client, resource, ref
 		}
 		return TokenPair{}, access.ErrDenied
 	}
-	_, created, err := repository.grant(ctx, tx, grant, client)
+	principal, created, err := repository.grant(ctx, tx, grant, client)
 	if err != nil {
 		return TokenPair{}, err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE access_mcp_tokens SET consumed_at=now() WHERE token_hash=$1`, access.TokenHash(refresh)); err != nil {
 		return TokenPair{}, err
 	}
-	pair, err := issueTokens(ctx, tx, grant, created)
+	if !matchesScope(principal.TokenScope, requestedScope) {
+		return TokenPair{}, access.ErrInvalid
+	}
+	pair, err := issueTokens(ctx, tx, grant, created, principal.TokenScope)
 	if err != nil {
 		return TokenPair{}, err
 	}
@@ -177,14 +183,14 @@ func (repository *Repository) Authenticate(ctx context.Context, token, resource 
 	if resource != repository.Resource || !strings.HasPrefix(token, "kma_") || len(token) != 47 {
 		return access.Principal{}, time.Time{}, access.ErrDenied
 	}
-	var grant, userID string
+	var grant, userID, scope string
 	var version int64
 	var projects []byte
 	var expires time.Time
 	err := repository.pool.QueryRow(ctx, `UPDATE access_mcp_grants g SET last_used_at=now() FROM access_mcp_tokens t,access_mcp_clients c,access_users u,access_mcp_settings s
 WHERE t.token_hash=$1 AND t.kind='access' AND t.expires_at>now() AND t.grant_id=g.id AND g.client_id=c.id AND c.organization_id=$2 AND c.disabled_at IS NULL
 AND g.revoked_at IS NULL AND g.resource=$3 AND g.created_at>now()-interval '30 days' AND u.id=g.user_id AND u.status='active' AND u.organization_id=$2 AND u.version=g.user_version
-AND s.organization_id=$2 AND s.enabled RETURNING g.id,g.user_id,g.user_version,g.project_ids,t.expires_at`, access.TokenHash(token), repository.users.Organization, resource).Scan(&grant, &userID, &version, &projects, &expires)
+AND s.organization_id=$2 AND s.enabled RETURNING g.id,g.user_id,g.user_version,g.project_ids,g.scope,t.expires_at`, access.TokenHash(token), repository.users.Organization, resource).Scan(&grant, &userID, &version, &projects, &scope, &expires)
 	if err != nil {
 		return access.Principal{}, expires, access.ErrDenied
 	}
@@ -192,7 +198,7 @@ AND s.organization_id=$2 AND s.enabled RETURNING g.id,g.user_id,g.user_version,g
 	if err != nil || user.Version != version || user.Status != "active" {
 		return access.Principal{}, expires, access.ErrDenied
 	}
-	principal := access.Principal{User: user, Kind: "mcp", GrantID: grant}
+	principal := access.Principal{User: user, Kind: "mcp", GrantID: grant, TokenScope: scope}
 	if err := json.Unmarshal(projects, &principal.TokenProjects); err != nil {
 		return principal, expires, err
 	}

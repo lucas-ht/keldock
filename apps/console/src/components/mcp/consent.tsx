@@ -16,6 +16,7 @@ export function Consent({
   authorization: Authorization;
   projects: Project[];
 }) {
+  const canOperate = authorization.scope.split(" ").includes("keldock:operate");
   const [selected, setSelected] = useState<string[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
@@ -37,7 +38,8 @@ export function Consent({
     <div className="form-section">
       <Alert>
         <AlertTitle>
-          {authorization.clientName} is requesting read access
+          {authorization.clientName} is requesting{" "}
+          {canOperate ? "deployment access" : "read access"}
         </AlertTitle>
         <AlertDescription>
           The name is supplied by the client. Verify its callback address before
@@ -64,8 +66,10 @@ export function Consent({
       </dl>
       <p className="muted">
         This connection can read project and environment inventory, deployment
-        status, and redacted controller diagnostics. It cannot deploy, modify
-        accounts, or control clusters.
+        status, and redacted controller diagnostics.
+        {canOperate
+          ? " It can also select admitted releases and retry or cancel operations in nonproduction environments. It cannot publish images, promote to production, change accounts, install modules, or delete persistent data."
+          : " It cannot deploy, modify accounts, or control clusters."}
       </p>
       <FieldGroup>
         <ProjectGrants

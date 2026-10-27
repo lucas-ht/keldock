@@ -37,6 +37,7 @@ type Principal struct {
 	Kind          string
 	GrantID       string
 	TokenProjects []string
+	TokenScope    string
 }
 
 // CanRead checks current account grants and the credential's narrower project scope.
@@ -47,9 +48,10 @@ func (principal Principal) CanRead(project string) bool {
 	return principal.User.Role == "admin" || slices.Contains(principal.User.Projects, project)
 }
 
-// CanOperate permits human operators to act only in their current project scope.
+// CanOperate requires a current operator and, for MCP, an explicit operation grant.
 func (principal Principal) CanOperate(project string) bool {
-	return principal.Kind == "session" && principal.CanRead(project) && (principal.User.Role == "admin" || principal.User.Role == "operator")
+	kind := principal.Kind == "session" || (principal.Kind == "mcp" && principal.TokenScope == "keldock:read keldock:operate")
+	return kind && principal.CanRead(project) && (principal.User.Role == "admin" || principal.User.Role == "operator")
 }
 
 // IsAdmin deliberately excludes machine/read credentials, even when their owner is an admin.
