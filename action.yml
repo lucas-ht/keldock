@@ -1,0 +1,47 @@
+name: Keldock deploy
+description: Submit a signed complete prebuilt release and optionally wait for revision-bound health.
+author: Keldock contributors
+inputs:
+  api-url:
+    description: Canonical HTTPS origin of your Keldock installation.
+    required: true
+  project:
+    description: Operator-configured Keldock project.
+    required: true
+  release-file:
+    description: Signed release JSON produced by trusted CI after image publication.
+    required: true
+  idempotency-key:
+    description: Stable request identity; defaults to repository/run/attempt/project.
+  wait:
+    description: Wait for readiness; false returns immediately after durable acceptance.
+    default: "true"
+  timeout:
+    description: Maximum readiness wait in seconds (10–900); accepted work continues after timeout.
+    default: "180"
+outputs:
+  accepted:
+    description: True once Keldock durably accepted the request.
+  ready:
+    description: True only after current selected-revision readiness was observed.
+  operation-id:
+    description: Durable operation identifier.
+  environment-id:
+    description: Stable environment identifier.
+  release-id:
+    description: Admitted immutable release identifier.
+  deployment-id:
+    description: Selected deployment identifier.
+  generation:
+    description: Desired environment generation.
+  status-url:
+    description: Authorized API URL for the receipt's current outcome.
+  console-url:
+    description: Environment detail URL.
+  state:
+    description: Accepted or latest observed operation state.
+  wait-timed-out:
+    description: True when this client stopped waiting; this never cancels accepted work.
+runs:
+  using: node24
+  main: action/main.mjs

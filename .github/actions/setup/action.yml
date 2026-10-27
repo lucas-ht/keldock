@@ -1,0 +1,14 @@
+name: Set up Keldock CI utility
+description: Build the pinned checkout's experimental preparation/attestation CLI in trusted user CI.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        KELDOCK_SOURCE: ${{ github.action_path }}/../../..
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/keldock/bin"
+        cd "$KELDOCK_SOURCE"
+        go build -trimpath -o "$RUNNER_TEMP/keldock/bin/keldock" ./cmd/keldock
+        echo "$RUNNER_TEMP/keldock/bin" >> "$GITHUB_PATH"

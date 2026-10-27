@@ -22,7 +22,7 @@
     "docs:lint": "markdownlint-cli2",
     "docs:links": "node tooling/checks/documents.mjs",
     "repo:check": "node tooling/checks/repository.mjs",
-    "test": "node --test tooling/checks/test/*.test.mjs",
+    "test": "node --test tooling/checks/test/*.test.mjs action/test/*.test.mjs",
     "ci:lint": "actionlint -shellcheck= -pyflakes=",
     "go:check": "node tooling/checks/golang.mjs && go vet ./... && go test -race -cover ./... && golangci-lint run"
   },
