@@ -1,0 +1,32 @@
+version: "3"
+
+tasks:
+  default:
+    desc: List repository tasks
+    cmds:
+      - task --list
+
+  bootstrap:
+    desc: Install the pinned repository validation dependencies
+    cmds:
+      - pnpm install --frozen-lockfile --ignore-scripts
+
+  doctor:
+    desc: Validate documentation, repository contracts and CI
+    cmds:
+      - pnpm check
+
+  format:
+    desc: Format supported repository files
+    cmds:
+      - pnpm format
+
+  format:check:
+    desc: Check formatting without changing files
+    cmds:
+      - pnpm format:check
+
+  test:
+    desc: Test repository validation behavior
+    cmds:
+      - pnpm test

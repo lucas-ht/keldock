@@ -1,0 +1,34 @@
+{
+  "name": "keldock-repository",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Keldock repository validation and architecture foundation",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucas-ht/keldock.git"
+  },
+  "packageManager": "pnpm@11.1.2",
+  "engines": {
+    "node": "24.22.1",
+    "pnpm": "11.1.2"
+  },
+  "scripts": {
+    "check": "pnpm format:check && pnpm docs:lint && pnpm docs:links && pnpm repo:check && pnpm test && pnpm ci:lint && git diff --check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docs:lint": "markdownlint-cli2",
+    "docs:links": "node tooling/checks/documents.mjs",
+    "repo:check": "node tooling/checks/repository.mjs",
+    "test": "node --test tooling/checks/test/*.test.mjs",
+    "ci:lint": "actionlint -shellcheck= -pyflakes="
+  },
+  "devDependencies": {
+    "github-slugger": "2.0.0",
+    "markdown-it": "15.0.3",
+    "markdownlint-cli2": "0.24.0",
+    "prettier": "3.9.10",
+    "yaml": "2.9.1"
+  }
+}

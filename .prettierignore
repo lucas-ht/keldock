@@ -1,0 +1,6 @@
+LICENSE
+pnpm-lock.yaml
+node_modules/
+.local/
+coverage/
+reports/
