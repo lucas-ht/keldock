@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
 
 func validApplication() Application {
@@ -14,6 +15,61 @@ func validApplication() Application {
 		"worker":   {Kind: "worker", Size: "small", Probe: &Probe{Command: []string{"/app/health"}}},
 		"schedule": {Kind: "cronjob", Size: "small", Schedule: "*/5 * * * *"},
 	}}
+}
+
+func TestObservationRequiresActualSelectedWorkloads(t *testing.T) {
+	definition := validApplication()
+	newReport := func() Observation {
+		report := Observation{EnvironmentID: "env-one", DeploymentID: "dep-one", Generation: 1, Bundle: "registry.example/bundles@sha256:" + strings.Repeat("c", 64), State: "ready", ObservedAt: time.Now().UTC()}
+		for name := range definition.Components {
+			report.Components = append(report.Components, ComponentHealth{Name: name, Ready: true, ObjectUID: "controller-" + name, ResourceVersion: "1", WorkloadUID: "workload-" + name, WorkloadVersion: "2", Image: "registry.example/app@sha256:" + strings.Repeat("a", 64), ObservedGeneration: 1, AppliedRevision: "sha256:" + strings.Repeat("c", 64)})
+		}
+		return report
+	}
+	if err := newReport().Validate(definition); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name   string
+		change func(*Observation)
+	}{
+		{"empty successful build", func(r *Observation) { r.Components = nil }},
+		{"missing workload", func(r *Observation) { r.Components[0].WorkloadUID = "" }},
+		{"missing resource version", func(r *Observation) { r.Components[0].WorkloadVersion = "" }},
+		{"old source", func(r *Observation) { r.Components[0].AppliedRevision = "sha256:" + strings.Repeat("b", 64) }},
+		{"mutable image", func(r *Observation) { r.Components[0].Image = "registry.example/app:latest" }},
+		{"duplicate component", func(r *Observation) { r.Components[1] = r.Components[0] }},
+		{"unknown component", func(r *Observation) { r.Components[0].Name = "unrequested" }},
+		{"unbounded output", func(r *Observation) { r.Components[0].Message = strings.Repeat("x", 1025) }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			report := newReport()
+			test.change(&report)
+			if err := report.Validate(definition); err == nil {
+				t.Fatal("invalid readiness evidence accepted")
+			}
+		})
+	}
+	scope := Scope{OrganizationID: "org-one", ProjectID: "project"}
+	first := EnvironmentID(scope, "sample", 7)
+	if first != EnvironmentID(scope, "sample", 7) || !ValidName(first) || first == EnvironmentID(scope, "sample", 8) || first == EnvironmentID(Scope{OrganizationID: "org-two", ProjectID: "project"}, "sample", 7) {
+		t.Fatal("environment identity lost stability or ownership scope")
+	}
+}
+
+func FuzzStrictJSON(f *testing.F) {
+	for _, seed := range []string{`{}`, `null`, `{"components":{"a":{"kind":"http"}}}`, `{"name":"first","name":"second"}`, `[1,2,3]`} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, data string) {
+		if len(data) > 1024*1024 {
+			t.Skip()
+		}
+		var app Application
+		if err := DecodeJSON([]byte(data), &app); err == nil {
+			_ = app.Validate()
+		} // Validation errors are expected for arbitrary parser inputs.
+	})
 }
 
 func TestApplicationContract(t *testing.T) {

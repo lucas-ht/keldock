@@ -14,13 +14,7 @@ import (
 )
 
 // Selection is trusted placement/configuration resolved by the control plane.
-type Selection struct {
-	EnvironmentID string `json:"environmentId"`
-	DeploymentID  string `json:"deploymentId"`
-	Generation    int64  `json:"generation"`
-	Namespace     string `json:"namespace"`
-	Hostname      string `json:"hostname,omitempty"`
-}
+type Selection = v1.Placement
 
 // Bundle contains deterministic manifests plus the graph the trusted registrar uses.
 type Bundle struct {
@@ -64,7 +58,7 @@ func Render(input v1.SubmitRelease, selection Selection) (Bundle, error) {
 		if err != nil {
 			return result, fmt.Errorf("encode kustomization: %w", err)
 		}
-		result.Files["components/"+name+"/kustomization.json"] = data
+		result.Files["components/"+name+"/kustomization.yaml"] = data
 	}
 	return result, nil
 }

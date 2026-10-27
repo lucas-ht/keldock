@@ -5,6 +5,24 @@ import (
 	"time"
 )
 
+// Placement is trusted environment configuration resolved by the control plane.
+type Placement struct {
+	EnvironmentID string `json:"environmentId"`
+	DeploymentID  string `json:"deploymentId"`
+	Generation    int64  `json:"generation"`
+	Namespace     string `json:"namespace"`
+	Hostname      string `json:"hostname,omitempty"`
+}
+
+// ProjectedDeployment is the approved, version-bound input for a scoped cluster agent.
+type ProjectedDeployment struct {
+	Operation  Operation         `json:"operation"`
+	Selection  Placement         `json:"selection"`
+	Definition Application       `json:"definition"`
+	Images     map[string]string `json:"images"`
+	Bundle     string            `json:"bundle"`
+}
+
 // Source preserves GitHub's immutable repository, workflow and tested source identity.
 type Source struct {
 	RepositoryID int64  `json:"repositoryId"`
@@ -95,6 +113,7 @@ type Observation struct {
 	Generation    int64             `json:"generation"`
 	Bundle        string            `json:"bundle"`
 	State         string            `json:"state"`
+	Reason        string            `json:"reason,omitempty"`
 	Components    []ComponentHealth `json:"components"`
 	ObservedAt    time.Time         `json:"observedAt"`
 }
@@ -107,6 +126,9 @@ type ComponentHealth struct {
 	Message            string `json:"message,omitempty"`
 	ObjectUID          string `json:"objectUid,omitempty"`
 	ResourceVersion    string `json:"resourceVersion,omitempty"`
+	WorkloadUID        string `json:"workloadUid,omitempty"`
+	WorkloadVersion    string `json:"workloadVersion,omitempty"`
+	Image              string `json:"image,omitempty"`
 	ObservedGeneration int64  `json:"observedGeneration"`
 	AppliedRevision    string `json:"appliedRevision,omitempty"`
 }

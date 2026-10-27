@@ -29,7 +29,7 @@ func (app Application) Validate() error {
 	}
 	routes := 0
 	for name, component := range app.Components {
-		if !ValidName(name) {
+		if !ValidName(name) || strings.HasPrefix(name, "keldock-") {
 			return fmt.Errorf("invalid component name %q", name)
 		}
 		if err := component.validate(); err != nil {

@@ -78,6 +78,9 @@ func TestCompiledWorkloadBoundaries(t *testing.T) {
 }
 
 func TestDeterministicArchiveAndJobIdentity(t *testing.T) {
+	if len(JobName(strings.Repeat("a", 40), strings.Repeat("b", 40))) > 63 {
+		t.Fatal("release job exceeded the Kubernetes name limit")
+	}
 	input, selection := fixture()
 	first, err := Render(input, selection)
 	if err != nil {

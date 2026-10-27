@@ -1,6 +1,8 @@
 package compiler
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"slices"
 
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
@@ -54,7 +56,7 @@ func pod(name string, component v1.Component, image string, selection Selection)
 }
 
 func workload(name string, component v1.Component, image string, selection Selection) []any {
-	metadata := metav1.ObjectMeta{Name: name, Namespace: selection.Namespace, Labels: labels(name, selection)}
+	metadata := metav1.ObjectMeta{Name: name, Namespace: selection.Namespace, Labels: labels(name, selection), Annotations: map[string]string{"keldock.io/deployment": selection.DeploymentID}}
 	template := pod(name, component, image, selection)
 	var result []any
 	switch component.Kind {
@@ -62,7 +64,7 @@ func workload(name string, component v1.Component, image string, selection Selec
 		result = append(result, &appsv1.Deployment{TypeMeta: metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"}, ObjectMeta: metadata,
 			Spec: appsv1.DeploymentSpec{Replicas: ptr.To(int32(1)), Selector: &metav1.LabelSelector{MatchLabels: labels(name, selection)}, Template: template}})
 	case "job":
-		metadata.Name = name + "-" + selection.DeploymentID
+		metadata.Name = JobName(name, selection.DeploymentID)
 		template.Spec.RestartPolicy = corev1.RestartPolicyNever
 		result = append(result, &batchv1.Job{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}, ObjectMeta: metadata,
 			Spec: batchv1.JobSpec{BackoffLimit: ptr.To(int32(0)), ActiveDeadlineSeconds: ptr.To(int64(60)), Template: template}})
@@ -83,4 +85,9 @@ func workload(name string, component v1.Component, image string, selection Selec
 					Service: &networkingv1.IngressServiceBackend{Name: name, Port: networkingv1.ServiceBackendPort{Name: "http"}}}}}}}}}}})
 	}
 	return result
+}
+
+// JobName is stable per selected deployment and stays within Kubernetes' DNS label limit.
+func JobName(component, deployment string) string {
+	return component + "-" + fmt.Sprintf("%x", sha256.Sum256([]byte(deployment)))[:16]
 }
