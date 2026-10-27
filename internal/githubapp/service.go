@@ -99,6 +99,8 @@ type Status struct {
 	Repositories        []store.RepositoryGrant `json:"repositories"`
 	PendingEvents       int                     `json:"pendingEvents"`
 	FailedEvents        int                     `json:"failedEvents"`
+	PendingFeedback     int                     `json:"pendingFeedback"`
+	FailedFeedback      int                     `json:"failedFeedback"`
 	RequiredPermissions map[string]string       `json:"requiredPermissions"`
 	WebhookURL          string                  `json:"webhookUrl"`
 	SetupURL            string                  `json:"setupUrl"`
@@ -122,6 +124,9 @@ func (service *Service) Status(ctx context.Context) (Status, error) {
 		return status, err
 	}
 	status.PendingEvents, status.FailedEvents, err = service.Repository.EventCounts(ctx)
+	if err == nil {
+		status.PendingFeedback, status.FailedFeedback, err = service.Repository.FeedbackCounts(ctx)
+	}
 	return status, err
 }
 

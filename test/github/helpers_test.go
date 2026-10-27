@@ -34,6 +34,7 @@ type remote struct {
 	name      string
 	owner     int64
 	pull      client.PullRequest
+	feedback  func(http.ResponseWriter, *http.Request, func(any)) bool
 }
 
 type fixture struct {
@@ -140,6 +141,9 @@ func (remote *remote) handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	permissions := githubapp.RequiredPermissions()
+	if remote.feedback != nil && remote.feedback(w, r, write) {
+		return
+	}
 	installation := client.Installation{ID: 701, AppID: 501, Account: client.Account{ID: 42, Login: "owner"}, Permissions: permissions}
 	if remote.suspended {
 		now := time.Now()

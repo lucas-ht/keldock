@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/lucas-ht/keldock/internal/access"
@@ -167,17 +168,25 @@ func (service *Service) AuthorizeRepository(ctx context.Context, repositoryID, o
 	}
 	token, err := api.InstallationToken(ctx, grant.InstallationID, []int64{repositoryID})
 	if err != nil {
-		return grant, err
+		return grant, delegationFailure(err)
 	}
 	var remote client.Repository
 	if err := api.RepositoryRequest(ctx, token, "GET", fmt.Sprintf("/repositories/%d", repositoryID), nil, &remote); err != nil {
-		return grant, err
+		return grant, delegationFailure(err)
 	}
 	if remote.ID != repositoryID || remote.Owner.ID != ownerID || remote.FullName != name {
 		return grant, access.ErrDenied
 	}
 	grant.FullName = remote.FullName
 	return grant, nil
+}
+
+func delegationFailure(err error) error {
+	var upstream *client.Error
+	if errors.As(err, &upstream) && !upstream.Limited && (upstream.Status == 401 || upstream.Status == 403 || upstream.Status == 404 || upstream.Status == 422) {
+		return access.ErrDenied
+	}
+	return err
 }
 
 // AuthorizeRelease refreshes authoritative PR state before transactional receipt/admission checks.

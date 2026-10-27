@@ -27,6 +27,10 @@ func (service Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/github/app", service.configure)
 	mux.HandleFunc("DELETE /v1/github/app", service.disconnect)
 	mux.HandleFunc("POST /v1/github/sync", service.sync)
+	mux.HandleFunc("POST /v1/github/setup", service.setup)
+	mux.HandleFunc("POST /v1/github/setup/complete", service.complete)
+	mux.HandleFunc("POST /v1/github/webhook", service.webhook)
+	mux.HandleFunc("POST /v1/github/retry", service.retry)
 	mux.HandleFunc("POST /v1/github/installations/{installation}/connect", service.installation)
 	mux.HandleFunc("POST /v1/github/installations/{installation}/disconnect", service.installation)
 }

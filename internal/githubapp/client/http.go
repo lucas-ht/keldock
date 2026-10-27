@@ -20,6 +20,7 @@ import (
 type Error struct {
 	Status     int
 	RetryAfter time.Duration
+	Limited    bool
 }
 
 func (failure *Error) Error() string {
@@ -45,6 +46,15 @@ func New(app credentials.App, options Options) (*Client, error) {
 	if _, err := app.Key(); err != nil {
 		return nil, err
 	}
+	connection, err := newConnection(options)
+	if err != nil {
+		return nil, err
+	}
+	connection.credentials = app
+	return connection, nil
+}
+
+func newConnection(options Options) (*Client, error) {
 	base := strings.TrimSuffix(options.BaseURL, "/")
 	if base == "" {
 		base = "https://api.github.com"
@@ -61,7 +71,7 @@ func New(app credentials.App, options Options) (*Client, error) {
 	if base != "https://api.github.com" && !localAPI {
 		return nil, fmt.Errorf("unsupported GitHub API origin")
 	}
-	return &Client{credentials: app, base: base, http: &http.Client{Timeout: 15 * time.Second, Transport: options.Transport,
+	return &Client{base: base, http: &http.Client{Timeout: 15 * time.Second, Transport: options.Transport,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
@@ -81,7 +91,9 @@ func (client *Client) request(ctx context.Context, method, path, token string, i
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Authorization", "Bearer "+token)
+	if token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("X-GitHub-Api-Version", APIVersion)
 	request.Header.Set("User-Agent", "Keldock/v1alpha1")
@@ -102,7 +114,8 @@ func (client *Client) request(ctx context.Context, method, path, token string, i
 				retry = min(max(time.Until(time.Unix(reset, 0)), time.Second), time.Hour)
 			}
 		}
-		return &Error{Status: response.StatusCode, RetryAfter: retry}
+		limited := response.StatusCode == http.StatusTooManyRequests || response.Header.Get("X-RateLimit-Remaining") == "0" || (response.StatusCode == http.StatusForbidden && response.Header.Get("Retry-After") != "")
+		return &Error{Status: response.StatusCode, RetryAfter: retry, Limited: limited}
 	}
 	if output == nil || response.StatusCode == http.StatusNoContent {
 		return nil

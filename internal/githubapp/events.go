@@ -115,7 +115,7 @@ func (service *Service) ProcessEvent(ctx context.Context) (bool, error) {
 
 // Run recovers webhook work and periodically repairs missed GitHub selection/PR state.
 func (service *Service) Run(ctx context.Context) error {
-	var nextSync time.Time
+	var nextSync, nextFeedback time.Time
 	for ctx.Err() == nil {
 		if time.Now().After(nextSync) {
 			work, cancel := context.WithTimeout(ctx, 45*time.Second)
@@ -125,6 +125,19 @@ func (service *Service) Run(ctx context.Context) error {
 				slog.Warn("GitHub synchronization retry", "error", err)
 			}
 			nextSync = time.Now().Add(time.Minute)
+			var upstream *client.Error
+			if errors.As(err, &upstream) {
+				nextSync = time.Now().Add(max(time.Minute, upstream.RetryAfter))
+			}
+		}
+		if time.Now().After(nextFeedback) {
+			if err := service.Repository.DiscoverFeedback(ctx); err != nil {
+				slog.Warn("GitHub feedback discovery retry", "error", err)
+			}
+			nextFeedback = time.Now().Add(5 * time.Second)
+		}
+		if _, err := service.ProcessFeedback(ctx); err != nil && ctx.Err() == nil {
+			slog.Warn("GitHub feedback retry", "error", err)
 		}
 		didWork, err := service.ProcessEvent(ctx)
 		if err != nil && ctx.Err() == nil {
