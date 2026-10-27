@@ -4,7 +4,8 @@ Recorded 2026-10-27 on macOS/arm64, against the owned disposable keldock-m1 Dock
 network, PostgreSQL database, registry and k3d cluster. Exact target/version pins are in
 the [local runtime guide](../runtime/local-development.md). No cloud, production or
 existing application installation was changed. This is an experimental development
-profile; the full M2 private-registry pull gate remains open.
+profile. A subsequent operator scope decision accepts M2 and moves private GHCR pulls
+to M3, with other registry profiles deferred. It adds no private-registry test evidence.
 
 ## Implementation and reproduction
 
@@ -76,8 +77,9 @@ under .impeccable/review and .local; no secret or generated kubeconfig is commit
 
 ## Remaining gates
 
-- Authenticated private-registry pull profiles: publisher credentials exist, but the
-  current pull fixture uses an unauthenticated local registry. Full M2 remains open.
+- Private GHCR pull acceptance: moved to M3 by operator decision. Publisher credentials
+  exist, but the current pull fixture uses an unauthenticated local registry. AWS/ECR,
+  Docker Hub and private Harbor-style registry profiles follow later.
 - A documented assistant-host integration and versioned skills, bounded MCP writes and
   nonproduction selection: M4; the SDK pass does not imply every assistant host works.
 - Live GitHub App/Actions/reporting: M3; general installation, upgrade and control-plane

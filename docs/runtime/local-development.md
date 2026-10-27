@@ -81,7 +81,7 @@ not assert that a scheduled execution completed. Persistent data capabilities re
 ## Limits and inspection
 
 Kubernetes evidence exercises both the registrar/compiler and the API/worker/outbound
-agent. Private authenticated registry pulls remain an open M2 gate. OIDC tests use
+agent. Private GHCR pulls are an M3 gate; other registry profiles follow later. OIDC tests use
 real RSA verification against a loopback test issuer and separate Ed25519 provenance.
 They do not establish live GitHub App, Actions or feedback behavior. GitHub-hosted CI is
 configured to repeat the disposable suite; no hosted run is claimed by local execution.

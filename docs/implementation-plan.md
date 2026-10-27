@@ -1,8 +1,9 @@
 # Keldock implementation plan
 
 Updated 2026-10-27. Milestones are dependency gates, not calendar commitments.
-This is a fresh repository: M0/core M1 and the M2 authentication, console and MCP-read
-slice are implemented. Full M2 retains the private-registry pull acceptance gate.
+This is a fresh repository: M0/core M1 and M2 are implemented. By operator decision,
+private GitHub Container Registry (GHCR) pulls belong to M3; additional registry
+profiles follow later. Moving this gate does not claim private pulls were validated.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
 ## First-release target
@@ -26,16 +27,16 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 
 ## Milestones
 
-| Milestone | Deliverable                                             | Dependencies               | Status                                           |
-| --------- | ------------------------------------------------------- | -------------------------- | ------------------------------------------------ |
-| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap                    |
-| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain         |
-| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Auth/UI/reads implemented; private pulls pending |
-| M3        | GitHub integration, thin Action and feedback            | M2                         | Pending                                          |
-| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                                          |
-| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                            |
-| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                          |
-| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                            |
+| Milestone | Deliverable                                             | Dependencies               | Status                                   |
+| --------- | ------------------------------------------------------- | -------------------------- | ---------------------------------------- |
+| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap            |
+| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain |
+| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                              |
+| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Pending                                  |
+| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                                  |
+| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                    |
+| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                  |
+| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                    |
 
 Each implemented milestone needs a usable status/failure surface, cancellation semantics,
 and updated evidence. Do not defer all operational work to the final packaging milestone.
@@ -107,7 +108,7 @@ general onboarding and data recovery.
 Acceptance: update only the API while pinning other images, fail a prerequisite and
 readiness probe, recover each, restart workers/agents during rollout, and reject stale
 generations. Workload identities cannot change registration or neighboring environments.
-Reject incomplete/tag-only releases, bad provenance and wrong targets. Verify registry
+Reject incomplete/tag-only releases, bad provenance and wrong targets. Verify local OCI
 pull access and no Git writeback. Accepted work survives a lost submitting client.
 
 Extend task local:test through the real API and agent. The earlier fixture alone does
@@ -118,9 +119,9 @@ Implemented and [locally validated](validation/m2-access-and-console.md): durabl
 accounts and project grants; bootstrap/recovery; single-use enrollment, leases, rotation
 and revocation; a health-first Next.js console with people/cluster/MCP administration;
 retry/cancel and redacted diagnostics; five read tools behind OAuth project consent.
-The SDK flow tests current authority and narrowed access. Full M2 remains open until an
-authenticated private-registry pull profile is implemented and exercised; the current
-registry is intentionally unauthenticated and local. Assistant-host/skill acceptance is M4.
+The SDK flow tests current authority and narrowed access. M2 is accepted within this
+local profile. The registry is intentionally unauthenticated; private GHCR acceptance
+moves to M3. Assistant-host/skill acceptance is M4.
 
 ## M3: GitHub CI integration and feedback
 
@@ -132,6 +133,10 @@ registry is intentionally unauthenticated and local. Assistant-host/skill accept
    complete immutable releases, return receipts/URLs, and optionally wait for readiness.
 4. Report Checks, Deployments/status and one updated PR comment from the durable record.
    Keep build completion, acceptance, rollout readiness and client wait timeout distinct.
+5. Implement private GHCR workload-image pulls and the Flux OCI bundle pull path when
+   bundles are stored in GHCR. Separate CI publication, control-plane bundle publication
+   and cluster read credentials. Test rotation, revocation, denied package access and
+   credential projection without exposing secrets in releases, diagnostics or MCP.
 
 Acceptance uses a dedicated real test App/repository. Exercise revoked access, repository
 rename/transfer, replay, out-of-order build results, lost acceptance response, runner
@@ -139,6 +144,39 @@ termination, and reporting outages. Distinguish PR head from tested merge SHA. N
 privileged submission or secret access through untrusted pull_request_target code.
 Promotion/retry reuse images; no builder, test runner, or image publisher runs in Keldock.
 Local webhook fixtures do not replace live GitHub integration evidence.
+
+M3 supports GHCR first. AWS/ECR, Docker Hub and private Harbor-style registries remain
+later profiles, with their own authentication, refresh, TLS and access tests. Keep the
+internal credential boundary extensible without advertising unimplemented adapters.
+
+### Live acceptance prerequisites
+
+| Input                                                      | Required scope                                                                                                                            |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub owner and disposable private application repository | Operator can install the App, run Actions and create/update/close test PRs; use synthetic data and the multi-service fixture              |
+| Installation-owned GitHub App                              | Manifest registration and selected-repository installation; private key and webhook secret stay in private installation storage           |
+| Reachable development HTTPS origin                         | GitHub can deliver webhooks and Actions can submit; a temporary tunnel to the disposable local installation is sufficient for development |
+| GHCR namespace and package access                          | CI publishes prebuilt images; the cluster has a separate read credential; a GHCR-hosted bundle publisher additionally needs write access  |
+| CI provenance signing material                             | Trusted workflow signs the existing release contract; the operator registers its public key, with no enterprise attestation dependency    |
+
+Prepare App registration, the Action, durable feedback and registry tests locally before
+requesting these credentials. App setup can obtain its own key/webhook secret through
+the manifest flow; the operator completes registration and chooses repositories.
+Repository API access and GHCR package access are distinct authorization boundaries.
+The proposed App permissions are Metadata/Contents/Actions read and Pull requests/Checks/
+Deployments write; automatic setup PRs would require separate source/workflow authority.
+
+Actions use GITHUB_TOKEN for image publication and OIDC for Keldock submission. External
+GHCR readers use a PAT classic with read:packages and actual package access under the
+[current registry profile](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+Do not assume an App installation token or an expired workflow token can serve as a
+durable registry credential. If Keldock publishes its own bundles to GHCR, provision a
+separate write:packages credential for that publisher, not for workload image pulls.
+
+Use the existing keldock-m1 target for Kubernetes acceptance. A separate workload domain
+is needed only to expose previews externally; the local fixture can validate HTTP using
+its explicit test Host header. Live tests need the Action's code accessible from the
+test repository; public publication is not required if private Action access is configured.
 
 ## M4: Previews, MCP writes and skills
 

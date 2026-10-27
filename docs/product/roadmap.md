@@ -15,6 +15,11 @@ deployment-first console and consented MCP reads. These keep the future hosted b
 concrete while leaving capability installation, skills and hosted tenancy behind their
 own evidence gates. See [current validation](../validation/m2-access-and-console.md).
 
+M2 is accepted for its tested local profile. M3 adds private GHCR pulls alongside GitHub
+App/Actions/feedback acceptance. AWS/ECR, Docker Hub and private Harbor-style registries
+follow later, each with separate credential lifecycle and access evidence. No private
+registry profile is currently validated by the unauthenticated disposable registry.
+
 ## M5: Optional AWS resources
 
 This optional track depends on relevant identity/lifecycle spikes and core delivery;

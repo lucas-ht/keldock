@@ -30,6 +30,13 @@ is not a selected runtime dependency. Pin and test each implemented compatibilit
 - [Webhook best practices](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)
   and [troubleshooting](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/troubleshooting-webhooks):
   authentication, delivery handling and recovery.
+- [GHCR authentication and access](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry):
+  Actions publication uses GITHUB_TOKEN; external private pulls require the supported
+  package credential. GitHub App repository access does not imply registry access.
+- [Check runs](https://docs.github.com/en/rest/checks/runs#create-a-check-run),
+  [deployments](https://docs.github.com/en/rest/deployments/deployments#create-a-deployment)
+  and [PR conversation comments](https://docs.github.com/en/rest/issues/comments#create-an-issue-comment):
+  the App's feedback permissions are distinct from CI submission and package publication.
 
 ## Agent interfaces
 

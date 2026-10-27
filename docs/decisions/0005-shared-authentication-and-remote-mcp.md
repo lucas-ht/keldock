@@ -38,6 +38,7 @@ Real PostgreSQL, HTTP and SDK tests cover replay, expiry, current account author
 redirect/resource binding, consent, refresh and denial. This evidence is local and does
 not establish compatibility with every assistant host or production hardening.
 
-MCP writes and versioned agent skills remain M4. Private registry pull profiles, installer
-packaging, backup/restore and live GitHub integration retain their own evidence gates.
+MCP writes and versioned agent skills remain M4. Private GHCR pulls join live GitHub in
+M3 by operator scope decision; AWS/ECR, Docker Hub and private Harbor-style registries
+follow later. Installer packaging and backup/restore retain their own evidence gates.
 The console does not imply installed Vault, Temporal, Crossplane or database capabilities.
