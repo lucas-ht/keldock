@@ -22,32 +22,34 @@ type repositorySettings struct {
 }
 
 type controlSettings struct {
-	DatabaseURL          string               `json:"databaseUrl"`
-	Listen               string               `json:"listen"`
-	Organization         string               `json:"organizationId"`
-	Cluster              string               `json:"clusterId"`
-	Domain               string               `json:"domain"`
-	RegistryPush         string               `json:"registryPush"`
-	RegistryPull         string               `json:"registryPull"`
-	RegistryUsername     string               `json:"registryUsername,omitempty"`
-	RegistryPasswordFile string               `json:"registryPasswordFile,omitempty"`
-	RegistryPlainHTTP    bool                 `json:"registryPlainHttp"`
-	PublicURL            string               `json:"publicUrl"`
-	WebhookSecretFile    string               `json:"webhookSecretFile"`
-	GitHubIssuer         string               `json:"githubIssuer"`
-	GitHubAudience       string               `json:"githubAudience"`
-	Development          bool                 `json:"development"`
-	Projects             []repositorySettings `json:"projects"`
+	DatabaseURL           string               `json:"databaseUrl"`
+	Listen                string               `json:"listen"`
+	Organization          string               `json:"organizationId"`
+	Cluster               string               `json:"clusterId"`
+	Domain                string               `json:"domain"`
+	RegistryPush          string               `json:"registryPush"`
+	RegistryPull          string               `json:"registryPull"`
+	RegistryUsername      string               `json:"registryUsername,omitempty"`
+	RegistryPasswordFile  string               `json:"registryPasswordFile,omitempty"`
+	RegistryPlainHTTP     bool                 `json:"registryPlainHttp"`
+	PublicURL             string               `json:"publicUrl"`
+	WebhookSecretFile     string               `json:"webhookSecretFile"`
+	GitHubIssuer          string               `json:"githubIssuer"`
+	GitHubAudience        string               `json:"githubAudience"`
+	GitHubCredentialsFile string               `json:"githubCredentialsFile,omitempty"`
+	Development           bool                 `json:"development"`
+	Projects              []repositorySettings `json:"projects"`
 }
 
 type agentSettings struct {
-	APIURL            string `json:"apiUrl"`
-	CredentialFile    string `json:"credentialFile"`
-	Kubeconfig        string `json:"kubeconfig,omitempty"`
-	Context           string `json:"context,omitempty"`
-	RegistryPull      string `json:"registryPull"`
-	RegistryPlainHTTP bool   `json:"registryPlainHttp"`
-	Development       bool   `json:"development"`
+	APIURL                  string `json:"apiUrl"`
+	CredentialFile          string `json:"credentialFile"`
+	RegistryCredentialsFile string `json:"registryCredentialsFile,omitempty"`
+	Kubeconfig              string `json:"kubeconfig,omitempty"`
+	Context                 string `json:"context,omitempty"`
+	RegistryPull            string `json:"registryPull"`
+	RegistryPlainHTTP       bool   `json:"registryPlainHttp"`
+	Development             bool   `json:"development"`
 }
 
 func readSettings(path string, target any) error {

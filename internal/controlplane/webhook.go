@@ -43,6 +43,15 @@ func (api *API) webhook(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	header := request.Header.Get("X-Hub-Signature-256")
+	if api.GitHubApp != nil {
+		changed, err := api.GitHubApp.Receive(request.Context(), request.Header.Get("X-GitHub-Delivery"), request.Header.Get("X-GitHub-Event"), header, body)
+		if err != nil {
+			failure(w, err)
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]any{"state": "queued", "changed": changed})
+		return
+	}
 	if !strings.HasPrefix(header, "sha256=") {
 		failure(w, postgres.ErrDenied)
 		return

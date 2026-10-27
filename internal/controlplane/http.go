@@ -11,6 +11,8 @@ import (
 	"github.com/lucas-ht/keldock/internal/admission"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
+	githubhttp "github.com/lucas-ht/keldock/internal/controlplane/github"
+	"github.com/lucas-ht/keldock/internal/githubapp"
 	"github.com/lucas-ht/keldock/internal/mcpserver"
 	"github.com/lucas-ht/keldock/internal/storage/postgres"
 )
@@ -19,6 +21,7 @@ import (
 type API struct {
 	Store            *postgres.Store
 	GitHub           *admission.GitHub
+	GitHubApp        *githubapp.Service
 	Organization     string
 	Cluster          string
 	Projects         map[string]v1.Project
@@ -39,6 +42,9 @@ func (api *API) Handler() http.Handler {
 	}
 	mux := http.NewServeMux()
 	api.Security.Register(mux)
+	if api.GitHubApp != nil {
+		(githubhttp.Service{Integration: api.GitHubApp, Security: api.Security}).Register(mux)
+	}
 	mux.Handle("/mcp", mcpserver.Handler(api.Security.MCP, api.inspector()))
 	mux.HandleFunc("GET /v1/installation", api.installation)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -89,6 +95,11 @@ func (api *API) scope(request *http.Request) (v1.Scope, string, error) {
 	principal, err := api.GitHub.Authenticate(request.Context(), bearer(request))
 	if err != nil || principal.Scope != project.Scope {
 		return v1.Scope{}, "", postgres.ErrDenied
+	}
+	if api.GitHubApp != nil {
+		if _, err := api.GitHubApp.AuthorizeRepository(request.Context(), principal.Source.RepositoryID, principal.Source.OwnerID, principal.Source.Repository); err != nil {
+			return v1.Scope{}, "", err
+		}
 	}
 	return principal.Scope, principal.Actor, nil
 }

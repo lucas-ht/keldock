@@ -31,6 +31,12 @@ func (api *API) submit(w http.ResponseWriter, request *http.Request) {
 		failure(w, err)
 		return
 	}
+	if api.GitHubApp != nil {
+		if err := api.GitHubApp.AuthorizeRelease(request.Context(), input.Source); err != nil {
+			failure(w, err)
+			return
+		}
+	}
 	project, ok := api.Projects[principal.ProjectID]
 	if !ok || project.Scope != principal.Scope {
 		failure(w, postgres.ErrDenied)

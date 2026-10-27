@@ -16,6 +16,7 @@ import (
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane"
 	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
+	"github.com/lucas-ht/keldock/internal/githubapp"
 	"github.com/lucas-ht/keldock/internal/storage/postgres"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -107,12 +108,24 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 	}
 	api := &controlplane.API{Store: store, GitHub: verifier, Organization: settings.Organization, Cluster: settings.Cluster, Projects: projects, RepositoryOwners: owners,
 		Security: security, Development: settings.Development, WebhookSecret: []byte(webhookSecret), Domain: settings.Domain}
+	if settings.GitHubCredentialsFile != "" {
+		api.GitHubApp, err = githubapp.New(store, users, githubapp.Config{CredentialsFile: settings.GitHubCredentialsFile, PublicURL: settings.PublicURL, Development: settings.Development, Projects: projects, RepositoryOwners: owners})
+		if err != nil {
+			return err
+		}
+		if err := api.GitHubApp.Initialize(ctx); err != nil {
+			return err
+		}
+	}
 	server := &http.Server{Addr: settings.Listen, Handler: api.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, MaxHeaderBytes: 16 * 1024}
 	group, active := errgroup.WithContext(ctx)
 	group.Go(func() error {
 		return (controlplane.Worker{Store: store, Publisher: publisher, Organization: settings.Organization}).Run(active)
 	})
 	group.Go(func() error { return serveHTTP(active, server) })
+	if api.GitHubApp != nil {
+		group.Go(func() error { return api.GitHubApp.Run(active) })
+	}
 	slog.Info("experimental Keldock control plane starting", "listen", settings.Listen, "organization", settings.Organization, "cluster", settings.Cluster)
 	return group.Wait()
 }
