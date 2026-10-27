@@ -1,0 +1,11 @@
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+evictionHard:
+  memory.available: "100Mi"
+  nodefs.available: "10%"
+  imagefs.available: "10%"
+  nodefs.inodesFree: "5%"
+  imagefs.inodesFree: "5%"
+evictionMinimumReclaim:
+  nodefs.available: "1%"
+  imagefs.available: "1%"

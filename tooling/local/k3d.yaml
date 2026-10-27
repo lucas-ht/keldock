@@ -1,0 +1,35 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: keldock-m1
+servers: 1
+agents: 0
+image: rancher/k3s:v1.35.5-k3s1@sha256:2074403abe1bded11ef3dde09d457e13be8e0b64c218b1c4f8269b4565cfbc65
+network: keldock-m1
+volumes:
+  - volume: "./tooling/local/kubelet.yaml:/var/lib/rancher/k3s/agent/etc/kubelet.conf.d/10-keldock-dev.conf:ro"
+    nodeFilters: ["server:0"]
+kubeAPI:
+  hostIP: "127.0.0.1"
+  hostPort: "16443"
+ports:
+  - port: "127.0.0.1:18080:80"
+    nodeFilters: ["server:0:direct"]
+registries:
+  config: |
+    mirrors:
+      "keldock-m1-registry:5000":
+        endpoint:
+          - "http://keldock-m1-registry:5000"
+options:
+  k3d:
+    wait: true
+    timeout: "180s"
+    disableLoadbalancer: true
+  k3s:
+    extraArgs:
+      - arg: "--disable=metrics-server"
+        nodeFilters: ["server:0"]
+  kubeconfig:
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false

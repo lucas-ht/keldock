@@ -38,3 +38,20 @@ tasks:
     desc: Check Go contracts, race safety, static analysis and formatting
     cmds:
       - pnpm go:check
+
+  local:up:
+    desc: Prepare the dedicated disposable keldock-m1 cluster, registry and PostgreSQL
+    cmds:
+      - node tooling/local/up.mjs
+
+  local:reset:
+    desc: Recreate only the owned disposable keldock-m1 cluster and retain registry/database volumes
+    cmds:
+      - node tooling/local/reset.mjs
+
+  local:test:
+    desc: Exercise real PostgreSQL/runtime behavior in the dedicated disposable local target
+    deps: [local:up]
+    cmds:
+      - node tooling/local/build-fixture.mjs
+      - go test -race -tags integration -timeout=15m -count=1 -v ./test/runtime/...

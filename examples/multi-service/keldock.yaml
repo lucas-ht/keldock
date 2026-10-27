@@ -1,0 +1,41 @@
+apiVersion: keldock.io/v1alpha1
+name: sample
+components:
+  api:
+    kind: http
+    size: small
+    port: 8080
+    probe: { path: /ready }
+    env: { VERSION: v1 }
+  migrate:
+    kind: job
+    size: small
+    args: [job]
+    dependsOn: [api]
+    connectsTo: [api]
+    env: { UPSTREAM_URL: "http://api:8080" }
+  web:
+    kind: http
+    size: small
+    port: 8080
+    probe: { path: /ready }
+    route: true
+    dependsOn: [api, migrate]
+    connectsTo: [api]
+    env: { UPSTREAM_URL: "http://api:8080" }
+  worker:
+    kind: worker
+    size: small
+    args: [worker]
+    probe: { command: [/fixture, health] }
+    dependsOn: [api, migrate]
+    connectsTo: [api]
+    env: { UPSTREAM_URL: "http://api:8080" }
+  schedule:
+    kind: cronjob
+    size: small
+    args: [schedule]
+    schedule: "*/5 * * * *"
+    dependsOn: [api]
+    connectsTo: [api]
+    env: { UPSTREAM_URL: "http://api:8080" }

@@ -1,0 +1,31 @@
+name: keldock-m1
+
+services:
+  registry:
+    image: registry:3.0.0@sha256:6c5666b861f3505b116bb9aa9b25175e71210414bd010d92035ff64018f9457e
+    container_name: keldock-m1-registry
+    ports: ["127.0.0.1:5010:5000"]
+    volumes: ["registry:/var/lib/registry"]
+
+  postgres:
+    image: postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    container_name: keldock-m1-postgres
+    ports: ["127.0.0.1:55432:5432"]
+    environment:
+      POSTGRES_USER: keldock
+      POSTGRES_DB: keldock
+      POSTGRES_PASSWORD: ${KELDOCK_LOCAL_POSTGRES_PASSWORD:?Run task local:up}
+    volumes: ["postgres:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "keldock", "-d", "keldock"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+networks:
+  default:
+    name: keldock-m1
+
+volumes:
+  registry:
+  postgres:
