@@ -15,8 +15,9 @@
     "pnpm": "11.1.2"
   },
   "scripts": {
-    "check": "pnpm format:check && pnpm docs:lint && pnpm docs:links && pnpm repo:check && pnpm test && pnpm go:check && pnpm ci:lint && git diff --check",
+    "check": "pnpm format:check && pnpm docs:lint && pnpm docs:links && pnpm repo:check && pnpm test && pnpm go:check && pnpm ci:lint && pnpm console:check && git diff --check",
     "format": "prettier --write .",
+    "console:check": "pnpm --filter @keldock/console typecheck && pnpm --filter @keldock/console build",
     "format:check": "prettier --check .",
     "docs:lint": "markdownlint-cli2",
     "docs:links": "node tooling/checks/documents.mjs",

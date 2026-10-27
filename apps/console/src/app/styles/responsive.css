@@ -1,0 +1,124 @@
+@keyframes selection-change {
+  from {
+    box-shadow: 0 1px 0 var(--accent);
+  }
+  to {
+    box-shadow: 0 0 0 transparent;
+  }
+}
+@media (max-width: 1000px) {
+  .page-content {
+    padding: 24px;
+  }
+  .topbar {
+    padding: 0 24px;
+  }
+  .optional-column {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .app-shell {
+    display: block;
+  }
+  .app-shell > .rail {
+    display: none;
+  }
+  .mobile-menu {
+    display: inline-flex;
+  }
+  .topbar {
+    height: 64px;
+    padding: 0 18px;
+  }
+  .topbar-tools {
+    gap: 7px;
+  }
+  .topbar-context {
+    display: none;
+  }
+  .topbar-context[data-notice="true"] {
+    display: block;
+    max-width: 140px;
+    line-height: 1.3;
+  }
+  .page-content {
+    padding: 24px 18px 36px;
+  }
+  .page-heading {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .page-heading h1 {
+    font-size: 26px;
+  }
+  .revision-strip {
+    grid-template-columns: 1fr;
+  }
+  .revision-component {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .revision-component:last-child {
+    border-bottom: 0;
+  }
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .data-row {
+    padding: 18px 16px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .auth-intro {
+    padding: 24px;
+    gap: 32px;
+  }
+  .auth-intro h2,
+  .auth-intro p {
+    display: none;
+  }
+  .auth-main {
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .overview-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .overview-table th:nth-child(1) {
+    width: 34%;
+  }
+  .overview-table th:nth-child(2) {
+    width: 25%;
+  }
+  .overview-table th:nth-child(3) {
+    width: 41%;
+  }
+  .overview-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .overview-table td:first-child button {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

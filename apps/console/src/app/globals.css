@@ -1,0 +1,135 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/figtree";
+@import "./styles/shell.css";
+@import "./styles/content.css";
+@import "./styles/auth.css";
+@import "./styles/responsive.css";
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f7f7f0;
+  --foreground: #222a25;
+  --card: #fdfdf8;
+  --card-foreground: #222a25;
+  --popover: #fdfdf8;
+  --popover-foreground: #222a25;
+  --primary: #a44228;
+  --primary-foreground: #fff;
+  --secondary: #e8edde;
+  --secondary-foreground: #294233;
+  --muted: #edf0e5;
+  --muted-foreground: #5b665b;
+  --accent: #e9efe2;
+  --accent-foreground: #213d32;
+  --destructive: #ad3d35;
+  --border: #d6ddce;
+  --input: #bdc9b7;
+  --ring: #8b4e37;
+  --radius: 0.5rem;
+  --rail: #213d32;
+  --rail-foreground: #eff3e9;
+  --rail-muted: #bccdbd;
+  --rail-active: #e8edd9;
+  --success: #237043;
+  --success-surface: #e8f1e7;
+  --warning: #805510;
+  --warning-surface: #fbf0d7;
+  --failure: #a33730;
+  --failure-surface: #f8e9e4;
+  --header: #fbfbf5;
+}
+.dark {
+  --background: #161f1b;
+  --foreground: #e4ebdf;
+  --card: #1d2922;
+  --card-foreground: #e4ebdf;
+  --popover: #243129;
+  --popover-foreground: #e4ebdf;
+  --primary: #efac8f;
+  --primary-foreground: #382013;
+  --secondary: #304234;
+  --secondary-foreground: #e4ebdf;
+  --muted: #26362c;
+  --muted-foreground: #b0beac;
+  --accent: #304234;
+  --accent-foreground: #e4ebdf;
+  --destructive: #f29c91;
+  --border: #3a4b3e;
+  --input: #52664f;
+  --ring: #efac8f;
+  --rail: #101a15;
+  --rail-foreground: #e4ebdf;
+  --rail-muted: #b3c5b2;
+  --rail-active: #d4dfc7;
+  --success: #a4d0a6;
+  --success-surface: #233e2c;
+  --warning: #ebc27e;
+  --warning-surface: #44361e;
+  --failure: #f2aba2;
+  --failure-surface: #472b27;
+  --header: #1b261f;
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "Figtree Variable", sans-serif;
+}
+@layer base {
+  * {
+    @apply border-border;
+    scrollbar-color: var(--input) var(--background);
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    margin: 0;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+  input,
+  textarea {
+    caret-color: var(--primary);
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.025em;
+  }
+  a {
+    text-underline-offset: 4px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+  }
+}

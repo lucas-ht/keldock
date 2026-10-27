@@ -1,7 +1,8 @@
 globs:
   - "**/*.md"
 ignores:
-  - "node_modules/**"
+  - "**/node_modules/**"
+  - "**/.next/**"
   - ".local/**"
 config:
   MD013: false
