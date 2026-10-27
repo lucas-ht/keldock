@@ -1,7 +1,8 @@
 # First runtime contracts
 
-Status: M1 in progress. Go contracts, validation, provenance verification, the workload
-compiler and OCI publisher exist. This is not yet an installable control plane.
+Status: experimental core M1 implemented. Go contracts, validation, OIDC/provenance
+verification, durable dispatch, workload compilation, HTTP API and outbound agent exist.
+This is not yet a general installation. See [local evidence](local-development.md).
 
 ## Implemented profile
 
@@ -42,6 +43,7 @@ The compiler emits deterministic tar+gzip content containing only Deployments, J
 CronJobs, Services, Ingresses and NetworkPolicies, plus Kustomize build files. Trusted
 placement supplies the namespace, environment, deployment generation and route hostname.
 Namespace creation, accounts, RBAC and Flux configuration belong to the registrar.
+The build file is named kustomization.yaml; its JSON content is valid YAML.
 
 Workload pods run as non-root with read-only root filesystems, dropped capabilities,
 resource bounds, disabled service-account mounts and bounded temporary storage. Network

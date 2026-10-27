@@ -16,10 +16,12 @@ remain complete without a paid account or enterprise identity provider.
 
 ## Status
 
-M1 is in progress: [runtime contracts](docs/runtime/contracts.md), validation, signed
-provenance verification, workload compilation and OCI publication are implemented as
-Go libraries. The product server, agent, MCP endpoint, GitHub Action and installable
-package are still pending.
+The experimental core M1 is implemented: [runtime components](docs/runtime/contracts.md)
+include an HTTP API, durable PostgreSQL worker, OCI compilation/publication, outbound
+agent and scoped Flux reconciliation. [Disposable runtime tests](docs/runtime/local-development.md)
+exercise GitHub identity/event fixtures, multi-service previews, API-only image updates,
+failure/recovery and teardown through the API and compiled processes. Live GitHub,
+product auth/enrollment/UI, the Action, MCP and general installation remain later gates.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.
@@ -30,7 +32,7 @@ fleets are later milestones.
 
 - [Product direction](docs/product/direction.md): audience, FOSS commitments and business direction.
 - [Architecture](docs/architecture.md): components, ownership and deployment boundaries.
-- [Implementation plan](docs/implementation-plan.md): M0 completed; M1 contracts and spikes in progress.
+- [Implementation plan](docs/implementation-plan.md): M0 and core M1 implemented; product milestones follow.
 - [Expansion roadmap](docs/product/roadmap.md): modules, hosted control plane and hosting.
 - [Decisions](docs/decisions/README.md), [primary references](docs/references.md), and
   [validation evidence](docs/validation/README.md).
@@ -47,7 +49,9 @@ mise exec -- task doctor
 
 `task doctor` checks repository contracts, formatting, Markdown links, workflow syntax,
 and validation-tool tests. It does not validate a Kubernetes deployment or cloud access.
-There is no runtime installation command yet.
+The disposable developer environment is available through `task local:test`; see
+[process commands and private configuration](docs/runtime/processes.md).
+There is no general runtime installer yet.
 
 See [contributing](.github/CONTRIBUTING.md), [security](.github/SECURITY.md), and the
 [agent guide](AGENTS.md). The repository retains its [AGPLv3 license](LICENSE).

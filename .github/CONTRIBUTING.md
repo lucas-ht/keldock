@@ -25,7 +25,8 @@ pnpm check
 Run `task format` before committing. `task doctor` includes formatting, Markdown
 syntax/local links, repository/CI invariants, workflow lint, validation-tool tests,
 Go vet, race-enabled Go tests and golangci-lint.
-There is no runtime test command until a real deployment fixture exists.
+Runtime changes also require `task local:test`; see the
+[disposable target and evidence](../docs/runtime/local-development.md).
 
 ## Changes
 

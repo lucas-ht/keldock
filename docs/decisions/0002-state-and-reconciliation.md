@@ -1,6 +1,7 @@
 # 0002: State and reconciliation
 
-Status: accepted, 2026-10-27; executable contracts and compatibility spikes pending.
+Status: accepted, 2026-10-27; core contracts and local runtime implemented.
+See the [first runtime profile](0004-first-runtime-profile.md) for evidence and remaining gates.
 
 ## Context
 

@@ -6,7 +6,7 @@ The [implementation plan](../implementation-plan.md) owns M0–M6 and current st
 ## First-release boundary
 
 One self-hosted organization and cluster, GitHub delivery, multi-service previews,
-PostgreSQL with supplied backup infrastructure, and bounded MCP/skills access. General
+optional PostgreSQL with supplied backup infrastructure, and bounded MCP/skills access. General
 module administration, AWS provisioning, hosted service, and compute fleets are separate
 gates. Keep the product FOSS and accessible to individuals and small teams.
 

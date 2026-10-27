@@ -1,6 +1,7 @@
 # Product direction
 
-Updated 2026-10-27. Accepted direction; product runtime is not implemented.
+Updated 2026-10-27. Accepted direction; an experimental core runtime exists.
+The complete product and expansion tracks retain separate acceptance gates.
 
 ## Promise
 

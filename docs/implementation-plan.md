@@ -1,7 +1,7 @@
 # Keldock implementation plan
 
 Updated 2026-10-27. Milestones are dependency gates, not calendar commitments.
-This is a fresh repository: M0 tooling/design is complete; M1 is in progress.
+This is a fresh repository: M0 tooling/design and the experimental core M1 are implemented.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
 ## First-release target
@@ -25,16 +25,16 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 
 ## Milestones
 
-| Milestone | Deliverable                                             | Dependencies               | Status                        |
-| --------- | ------------------------------------------------------- | -------------------------- | ----------------------------- |
-| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap |
-| M1        | Core contracts and compatibility spikes                 | M0                         | In progress                   |
-| M2        | Durable API/agent, local delivery and MCP reads         | Core M1                    | Pending                       |
-| M3        | GitHub integration, thin Action and feedback            | M2                         | Pending                       |
-| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                       |
-| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track         |
-| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                       |
-| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                         |
+| Milestone | Deliverable                                             | Dependencies               | Status                                           |
+| --------- | ------------------------------------------------------- | -------------------------- | ------------------------------------------------ |
+| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap                    |
+| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain         |
+| M2        | Durable API/agent, local delivery and MCP reads         | Core M1                    | Runtime slice implemented; product gates pending |
+| M3        | GitHub integration, thin Action and feedback            | M2                         | Pending                                          |
+| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                                          |
+| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                            |
+| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                          |
+| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                            |
 
 Each implemented milestone needs a usable status/failure surface, cancellation semantics,
 and updated evidence. Do not defer all operational work to the final packaging milestone.
@@ -76,9 +76,18 @@ Record versions, commands, outcomes and limits. Core M1 gates M2; PostgreSQL evi
 gates M6; cloud evidence gates M5. An unsupported extension must not block the supported
 core or appear as an available UI capability.
 
-Implemented so far: [typed contracts, provenance and compilation](runtime/contracts.md).
-Local cluster behavior, durable worker/runtime integration and the remaining admission,
-packaging and protocol choices still need their acceptance evidence.
+Implemented: [typed core contracts, provenance and compilation](runtime/contracts.md),
+PostgreSQL dispatch/recovery, API admission/status, signed event handling, and an outbound
+agent with real local Flux delivery. [Local acceptance](runtime/local-development.md)
+includes multi-service previews, an API-only image update, prerequisite/readiness failure,
+recovery, scoped access, isolation, pruning/rollback, teardown and compiled processes.
+The [profile decision](decisions/0004-first-runtime-profile.md) selects packaging, human
+auth and MCP integration targets. Capability/resource/enrollment types do not imply
+implemented APIs. CNPG/restore and cloud spikes keep their separate M6/M5 gates.
+
+This runtime slice advances M2–M4 without closing those milestones. Remaining product
+gates include human authorization, single-use enrollment/revocation, UI/MCP, private
+registry profiles, thin Action/live GitHub feedback, onboarding and data recovery.
 
 ## M2: Durable control plane and local delivery
 

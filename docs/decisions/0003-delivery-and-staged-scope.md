@@ -1,6 +1,6 @@
 # 0003: Delivery and staged scope
 
-Status: accepted, 2026-10-27; implementation pending.
+Status: accepted, 2026-10-27; core runtime implemented; live GitHub and product gates pending.
 
 ## Context
 
@@ -27,8 +27,8 @@ Temporal follow later; AWS provisioning is an optional extension.
 
 Preserve external-control-plane and organization boundaries early, while postponing
 hosted accounts, billing, shared tenancy and provider compute. A modular Go API/worker
-and agent/controller manager with PostgreSQL is the provisional runtime baseline; M1
-spikes validate choices before dependency pins and packages are introduced.
+and agent/controller manager with PostgreSQL is the implemented experimental baseline;
+the [first runtime profile](0004-first-runtime-profile.md) records its tested scope.
 
 ## Consequences
 

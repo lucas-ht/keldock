@@ -1,6 +1,8 @@
 # API, MCP and agent skills
 
-Status: accepted design; API, adapter and skill artifacts pending implementation.
+Status: shared experimental delivery/status API implemented. MCP adapter and skill
+artifacts remain pending; the [first runtime profile](../decisions/0004-first-runtime-profile.md)
+selects their protocol/SDK/auth target without claiming runtime compatibility.
 
 ## Shared behavior
 

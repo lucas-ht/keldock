@@ -1,7 +1,8 @@
 # Keldock architecture
 
-Updated 2026-10-27. Accepted design; implementation pending beyond repository tooling.
-This fresh checkout has no inherited runtime contracts or deployment evidence.
+Updated 2026-10-27. Accepted design with an experimental core runtime. Current code and
+local evidence are recorded in the [runtime guide](runtime/local-development.md);
+unimplemented product and expansion gates remain explicit in the implementation plan.
 
 ## Product contract
 
@@ -85,10 +86,11 @@ flowchart TD
   API --> Feedback[GitHub checks, deployment status and UI]
 ```
 
-These are logical boundaries, not one service per box. The provisional baseline is Go
-for a modular API/worker and agent/controller manager, PostgreSQL for durable state,
-and TypeScript/React for the UI and Action. Node currently runs repository checks only.
-Pin runtime dependencies with implementation evidence rather than empty scaffolding.
+These are logical boundaries, not one service per box. The implemented baseline is Go
+for a modular API/worker and outbound agent/registrar, with PostgreSQL for durable state.
+The [first runtime profile](decisions/0004-first-runtime-profile.md) selects development
+packaging and interface targets. TypeScript/React UI and the thin Action remain later
+work. Pin runtime dependencies with implementation evidence rather than empty scaffolding.
 
 Validate a PostgreSQL outbox/leased-worker default. Temporal may be an optional future
 engine profile; it is not required for the minimum installation. Internal workflow
@@ -131,9 +133,10 @@ See the [authority decision](decisions/0002-state-and-reconciliation.md).
 | CloudConnection            | Optional account/region/capability scope and provisioning identity          |
 | Operation / Observation    | Durable work/attempt history and evidence for an exact desired revision     |
 
-These are design concepts, not shipped schemas or CRDs. M1 defines executable contracts
-and compatibility rules. Establish explicit organization ownership before M2 persistence;
-one-organization v1 does not justify trusting caller-supplied tenant IDs.
+Core application/release/operation/observation contracts have executable validation;
+the other domain types do not imply a working capability or enrollment API. Persistence
+establishes operator-owned organization/project placement and rejects reassignment.
+One-organization v1 does not justify trusting caller-supplied tenant IDs.
 
 ## Interfaces, modules and portability
 

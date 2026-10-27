@@ -1,6 +1,6 @@
 # Validation evidence
 
-## Current baseline
+## Bootstrap baseline
 
 The Keldock checkout was initialized from its existing license and one-line README on
 2026-10-27. Previous project prototypes, schema checks and runtime reports are not
@@ -16,8 +16,42 @@ Local repository validation on 2026-10-27:
 | GitHub-hosted CI                                   | Configured; no hosted run claimed by this local bootstrap                                                                              |
 | Product schemas/runtime/integration/cloud/recovery | Not implemented or validated                                                                                                           |
 
-Node currently runs repository checks only. There is no product deployment, MCP server,
-agent skill package, chart, runtime acceptance command or supported dependency matrix.
+At M0, Node ran repository checks only; no product deployment, MCP server, agent skill
+package, chart, runtime acceptance command or supported dependency matrix existed.
+
+This table records M0 only. Current M1 code and local runtime evidence are described in
+the [runtime guide](../runtime/local-development.md); it supersedes the bootstrap's
+absence of a runtime acceptance command. The experimental core M1 is implemented;
+live GitHub/cloud, MCP-host and data-recovery evidence is still absent.
+
+## Core M1 acceptance
+
+Local validation on 2026-10-27 uses Docker Desktop on macOS/arm64 and only the
+keldock-m1 PostgreSQL/registry/cluster target. Versions, exact targets and reproduction
+commands are in the [runtime guide](../runtime/local-development.md). The runtime
+implementation is recorded in commits 9d9fb0d, 48e04c6 and 174d721.
+
+| Check                                                                                                         | Result and scope                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| task doctor                                                                                                   | Passed: repository checks, Go formatting/vet/race tests/lint, and workflow lint                                                          |
+| task local:test                                                                                               | Passed: eight acceptance tests against real PostgreSQL, OCI distribution, Kubernetes, Flux and ingress                                   |
+| [API/agent preview lifecycle](../../test/runtime/agent_test.go)                                               | Signed event/OIDC/provenance fixtures, full graph, API-only image replacement, job failure/recovery, two previews, closure and teardown  |
+| [API and compiled processes](../../test/runtime/api_test.go)                                                  | Credential separation, scope checks, receipts, pagination, observation ordering; compiled serve/agent/inspect/attest commands            |
+| [Flux contract](../../test/runtime/delivery_test.go)                                                          | Selected-revision health/dependencies, failed readiness/recovery, scoped RBAC, ownership denial, pruning, rollback and network isolation |
+| [Durable state](../../test/runtime/postgres_test.go) and [worker recovery](../../test/runtime/worker_test.go) | Duplicate acceptance, lease expiry/restart, stale results, cancellation, close/replay ordering and recovery after actual OCI publication |
+| GitHub-hosted checks                                                                                          | Configured to run doctor and local:test; no hosted execution claimed                                                                     |
+
+The development fixture retains explicit disk, inode and memory eviction reserves and
+waits for pressure conditions to clear. Capacity-related failed runs were diagnosed
+as such, rather than counted as product passes. Raw logs, configuration and credentials
+remain ignored in .local. Successful acceptance removes its application namespaces;
+the registry and PostgreSQL volumes remain available for reuse.
+
+The [runtime profile decision](../decisions/0004-first-runtime-profile.md) records the
+remaining human-auth, enrollment, UI, registry, MCP and live-GitHub gates. This evidence
+does not establish cloud behavior, production availability, data backup/restore, hostile
+tenant isolation, or a supported minimum footprint. Cron readiness proves schedule
+configuration; the job fixture's HTTP counter is not a database migration/restore test.
 
 ## Reproduce repository checks
 
@@ -27,10 +61,10 @@ mise exec -- task bootstrap
 mise exec -- task doctor
 ```
 
-`task test` runs validation-tool tests. `task doctor` also validates untracked Markdown
+`task test` now runs validation-tool and race-enabled Go unit tests. `task doctor` also validates untracked Markdown
 files that are not ignored. External URLs are not fetched by the link checker; primary
-source research is a separate activity. `task local:test` will be introduced only with
-the first real runtime fixture.
+source research is a separate activity. `task local:test` exercises the dedicated
+keldock-m1 runtime target.
 
 ## Recording future evidence
 
