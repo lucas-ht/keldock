@@ -16,8 +16,10 @@ remain complete without a paid account or enterprise identity provider.
 
 ## Status
 
-This is a fresh repository bootstrap. Validation tooling exists; no product server,
-agent, MCP endpoint, GitHub Action, runtime schema, or installable chart is implemented.
+M1 is in progress: [runtime contracts](docs/runtime/contracts.md), validation, signed
+provenance verification, workload compilation and OCI publication are implemented as
+Go libraries. The product server, agent, MCP endpoint, GitHub Action and installable
+package are still pending.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.
@@ -28,7 +30,7 @@ fleets are later milestones.
 
 - [Product direction](docs/product/direction.md): audience, FOSS commitments and business direction.
 - [Architecture](docs/architecture.md): components, ownership and deployment boundaries.
-- [Implementation plan](docs/implementation-plan.md): M0 completed; M1 contracts and spikes next.
+- [Implementation plan](docs/implementation-plan.md): M0 completed; M1 contracts and spikes in progress.
 - [Expansion roadmap](docs/product/roadmap.md): modules, hosted control plane and hosting.
 - [Decisions](docs/decisions/README.md), [primary references](docs/references.md), and
   [validation evidence](docs/validation/README.md).

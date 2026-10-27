@@ -10,6 +10,7 @@ tasks:
     desc: Install the pinned repository validation dependencies
     cmds:
       - pnpm install --frozen-lockfile --ignore-scripts
+      - go mod download
 
   doctor:
     desc: Validate documentation, repository contracts and CI
@@ -20,6 +21,7 @@ tasks:
     desc: Format supported repository files
     cmds:
       - pnpm format
+      - golangci-lint fmt
 
   format:check:
     desc: Check formatting without changing files
@@ -30,3 +32,9 @@ tasks:
     desc: Test repository validation behavior
     cmds:
       - pnpm test
+      - go test -race ./...
+
+  go:check:
+    desc: Check Go contracts, race safety, static analysis and formatting
+    cmds:
+      - pnpm go:check

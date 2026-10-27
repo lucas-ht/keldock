@@ -1,7 +1,7 @@
 # Keldock implementation plan
 
 Updated 2026-10-27. Milestones are dependency gates, not calendar commitments.
-This is a fresh repository: M0 tooling/design is complete; M1 onward is pending.
+This is a fresh repository: M0 tooling/design is complete; M1 is in progress.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
 ## First-release target
@@ -28,7 +28,7 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 | Milestone | Deliverable                                             | Dependencies               | Status                        |
 | --------- | ------------------------------------------------------- | -------------------------- | ----------------------------- |
 | M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap |
-| M1        | Core contracts and compatibility spikes                 | M0                         | Pending                       |
+| M1        | Core contracts and compatibility spikes                 | M0                         | In progress                   |
 | M2        | Durable API/agent, local delivery and MCP reads         | Core M1                    | Pending                       |
 | M3        | GitHub integration, thin Action and feedback            | M2                         | Pending                       |
 | M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                       |
@@ -75,6 +75,10 @@ is shipped by M0. Publication is a separate decision.
 Record versions, commands, outcomes and limits. Core M1 gates M2; PostgreSQL evidence
 gates M6; cloud evidence gates M5. An unsupported extension must not block the supported
 core or appear as an available UI capability.
+
+Implemented so far: [typed contracts, provenance and compilation](runtime/contracts.md).
+Local cluster behavior, durable worker/runtime integration and the remaining admission,
+packaging and protocol choices still need their acceptance evidence.
 
 ## M2: Durable control plane and local delivery
 
