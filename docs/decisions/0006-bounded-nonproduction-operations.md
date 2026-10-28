@@ -30,6 +30,12 @@ consented permissions. Check account, grant, client and endpoint authority in th
 transaction as desired-state mutation, with stable lock order and revocation fencing.
 An MCP grant never becomes an administrative session.
 
+Acquire authorization row locks in account, endpoint, client and grant order. A joined
+locking query can acquire a grant first, blocking an administrator who already holds
+the endpoint/client while revoking another user's grants. Real PostgreSQL concurrency
+tests cover both revocation paths. This follows PostgreSQL's
+[consistent lock ordering guidance](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-DEADLOCKS).
+
 Bind each intent to stable target IDs, the observed desired generation and an actor-scoped
 request key. Identical uncertain retries return the historical durable receipt;
 changed intent conflicts. New accepted intents are limited to 30 per minute per actor

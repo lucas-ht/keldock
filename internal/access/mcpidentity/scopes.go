@@ -53,10 +53,24 @@ func (repository *Repository) RequireOperator(ctx context.Context, tx pgx.Tx, pr
 	if err != nil {
 		return err
 	}
+	// Match revocation order: account, endpoint, client, then grant. A joined
+	// locking query can hold a grant while waiting on a disabling administrator.
+	if err = repository.requireEnabled(ctx, tx); err != nil {
+		return err
+	}
+	var client string
+	err = tx.QueryRow(ctx, `SELECT c.id FROM access_mcp_clients c JOIN access_mcp_grants g ON g.client_id=c.id
+WHERE g.id=$1 AND g.user_id=$2 AND c.organization_id=$3 AND c.disabled_at IS NULL FOR SHARE OF c`, principal.GrantID, user.ID, repository.users.Organization).Scan(&client)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return access.ErrDenied
+	}
+	if err != nil {
+		return err
+	}
 	var allowed bool
-	err = tx.QueryRow(ctx, `SELECT g.scope=$4 AND g.project_ids ? $5 FROM access_mcp_grants g JOIN access_mcp_clients c ON c.id=g.client_id JOIN access_mcp_settings s ON s.organization_id=c.organization_id
-WHERE g.id=$1 AND g.user_id=$2 AND g.user_version=$3 AND g.revoked_at IS NULL AND g.resource=$6 AND g.created_at>now()-interval '30 days'
-AND c.organization_id=$7 AND c.disabled_at IS NULL AND s.enabled FOR SHARE OF g,c,s`, principal.GrantID, user.ID, user.Version, OperationScope, project, repository.Resource, repository.users.Organization).Scan(&allowed)
+	err = tx.QueryRow(ctx, `SELECT scope=$4 AND project_ids ? $5 FROM access_mcp_grants
+WHERE id=$1 AND user_id=$2 AND user_version=$3 AND revoked_at IS NULL AND resource=$6 AND created_at>now()-interval '30 days'
+AND client_id=$7 FOR SHARE`, principal.GrantID, user.ID, user.Version, OperationScope, project, repository.Resource, client).Scan(&allowed)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && !allowed) {
 		return access.ErrDenied
 	}
