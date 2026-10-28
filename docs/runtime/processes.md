@@ -19,6 +19,11 @@ mise exec -- go build -o .local/keldock ./cmd/keldock
 .local/keldock agent --config .local/agent.json
 ```
 
+Optional AWS commands (`cloud plan`, `cloud runtime`, `enroll --cloud`, `cloud-agent`)
+have a [separate operator guide](cloud/README.md). Private `cloud` policies enable the API
+profile; the cloud agent has its own credential, kubeconfig/context and `policies` list.
+It receives no workload registrar credential. No cloud profile is enabled by default.
+
 Run serve and agent as separate processes. `--migrate` explicitly applies checksummed
 control-plane database migrations; the agent never migrates that database. Key generation
 and attestation outputs refuse to overwrite existing files. Keep the private signing key

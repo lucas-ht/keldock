@@ -2,7 +2,7 @@
 
 Updated 2026-10-28. Milestones are dependency gates, not calendar commitments.
 This is a fresh repository: M0/core M1, M2, the GitHub.com/GHCR M3 profile and the
-stateless preview/MCP/skills M4 profile are implemented. Private GitHub Container Registry (GHCR) pulls were assigned to M3 by
+stateless preview/MCP/skills M4 profile and optional AWS M5 development profile are implemented. Private GitHub Container Registry (GHCR) pulls were assigned to M3 by
 operator decision and now have live evidence; additional registry profiles follow later.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
@@ -27,16 +27,16 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 
 ## Milestones
 
-| Milestone | Deliverable                                             | Dependencies               | Status                                   |
-| --------- | ------------------------------------------------------- | -------------------------- | ---------------------------------------- |
-| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap            |
-| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain |
-| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                              |
-| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Implemented; development profile         |
-| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Implemented; development profile         |
-| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                    |
-| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                  |
-| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                    |
+| Milestone | Deliverable                                             | Dependencies               | Status                                    |
+| --------- | ------------------------------------------------------- | -------------------------- | ----------------------------------------- |
+| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap             |
+| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain  |
+| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                               |
+| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Implemented; development profile          |
+| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Implemented; development profile          |
+| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Implemented; optional development profile |
+| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                   |
+| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                     |
 
 Each implemented milestone needs a usable status/failure surface, cancellation semantics,
 and updated evidence. Do not defer all operational work to the final packaging milestone.
@@ -213,10 +213,15 @@ development profile; persistent-data recovery and general installation remain M6
 
 ## M5: Optional AWS extension
 
-Implement approved CloudConnections, domains, object/backup storage, workload identity,
-adoption and retention only with scoped live evidence. This can follow alpha and must
-not add AWS or Crossplane to the minimum stack. See the
-[extension acceptance](product/roadmap.md#m5-optional-aws-resources).
+Implemented and [validated](validation/m5-aws-resources.md): approved project-scoped
+connections, private retained stores, component identity, released-writer adoption,
+owned DNS/TLS and supplied-CNPG backup/archive/isolated restore. The optional cloud agent
+has independent enrollment and policy. Live tests proved real permissions/denials,
+partial recovery, provider upgrade, preview/controller removal retention and recovered
+fixture data; approved AWS fixtures were then removed. [The operator guide](runtime/cloud/README.md)
+records the supported profile and limits. AWS/Crossplane remain absent from the minimum
+stack; PostgreSQL allocation, general installation and cloud MCP consent remain separate
+gates. See the [extension acceptance](product/roadmap.md#m5-optional-aws-resources).
 
 ## M6: PostgreSQL and external-operator alpha
 

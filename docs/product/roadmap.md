@@ -24,16 +24,17 @@ pull projection; its local credentials do not establish GitHub package permissio
 
 ## M5: Optional AWS resources
 
-This optional track depends on relevant identity/lifecycle spikes and core delivery;
-it may follow M6.
+Implemented for the optional development profile, with [scoped live evidence](../validation/m5-aws-resources.md)
+and an [operator guide](../runtime/cloud/README.md). It remains independent of the minimum
+stack and does not close M6's general installation/data capability gates.
 
-- Implement CloudConnection role setup/verification, region/profile grants, scoped
+- CloudConnection role setup/verification, region/profile grants, scoped
   provider ownership, revocation, and connection health.
-- Add object storage create/connect-existing, exact consumer identities, protected
+- Object storage create/connect-existing, exact consumer identities, protected
   inventory, retain/disconnect behavior and explicit adoption.
-- Add domain ownership claims, scoped Route53/external DNS, conflict prevention and
+- Domain ownership claims, scoped Route53/external DNS, conflict prevention and
   certificate readiness. Existing hosted zones retain their owner.
-- Automate backup-store provisioning, archive generations, separate writer/restore
+- Backup-store provisioning, archive generations, separate writer/restore
   identities, schedules, backup/WAL observation and CNPG bindings.
 
 Acceptance in approved disposable targets proves allowed/denied access, partial-failure

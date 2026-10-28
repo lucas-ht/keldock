@@ -29,14 +29,21 @@ expiry and skill setup; [M4 evidence](docs/validation/m4-previews-and-agents.md)
 SDK, Codex CLI, browser and real keldock-example validation. Selection reuses admitted
 CI inputs and cannot introduce arbitrary images or production/admin authority.
 
-M2–M4 implement the development profile. Other registries, persistent application data,
+M5 adds an [optional AWS development profile](docs/runtime/cloud/README.md): approved
+connections, retained object/backup storage, exact component identities, DNS/TLS,
+released-writer adoption and supplied-database backup/restore. Its
+[live evidence](docs/validation/m5-aws-resources.md) includes real AWS permissions,
+retention, upgrade, recovery and scoped fixture cleanup. Core delivery requires none
+of these controllers or an AWS account.
+
+M2–M5 implement the development profile. Other registries, persistent application data,
 general installation and hosted operation retain their later milestone gates. This is
 not a packaged self-hosted alpha or a production-validation claim.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.
-General module installation, automated AWS provisioning, hosted tenancy, and compute
-fleets are later milestones.
+General module installation, hosted tenancy and compute fleets are later milestones.
+AWS automation is an independently enabled extension.
 
 ## Design and roadmap
 

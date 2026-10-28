@@ -1,6 +1,7 @@
 # 0007: Optional AWS ownership, identity and retained resources
 
-Status: implementation in progress. M5 cloud acceptance is not established by this decision.
+Status: accepted for the [validated M5 development profile](../validation/m5-aws-resources.md).
+General installation and production readiness remain separate gates.
 
 ## Scope and ownership
 
@@ -38,7 +39,10 @@ Use namespace-scoped AWS managed resources. Metadata conditions alone do not pro
 external changes or usable access. Verify the account, external identity, selected
 configuration and actual allowed/denied effects. Use managementPolicies explicitly:
 connect is Observe-only; managed resources omit Delete by default. Never enable
-forceDestroy for storage. A resource cannot be adopted merely because its name exists.
+forceDestroy for storage. Bucket identity has no Update authority; only the separate
+security controls update their approved fields. Adopted bucket identity is Observe-only,
+so missing data cannot trigger bucket recreation. The storage role also lacks bucket
+deletion and tag-writing permissions. A resource cannot be adopted merely because its name exists.
 
 New managed buckets use S3's account-regional namespace and stable account/region/resource
 names. Existing bucket access requires an exact operator grant and verified owner/region;

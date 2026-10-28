@@ -88,3 +88,10 @@ Do not infer cloud behavior from mocks, deployment readiness from accepted reque
 recoverability from backup status, or tenant isolation from namespace creation. Evidence
 must match the current implementation; revalidate affected claims after lifecycle changes.
 Keep secrets, real customer identifiers and raw runtime logs out of Git.
+
+## Optional AWS profile
+
+[M5 evidence](m5-aws-resources.md) records the approved disposable AWS tests, exact
+identity/permission boundaries, adoption, DNS/TLS, backup/WAL/restore, upgrade and
+retention proofs, UI checks and final fixture cleanup. This is an optional development
+profile; M6 still owns external-operator alpha installation and database allocation.

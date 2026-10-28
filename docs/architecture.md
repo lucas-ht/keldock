@@ -107,17 +107,17 @@ execution must remain independent of any customer Temporal installation Keldock 
 
 ## Authority and reconciliation
 
-| State/resource                                               | Sole authority or writer                              |
-| ------------------------------------------------------------ | ----------------------------------------------------- |
-| Application definition and build inputs                      | Versioned application source                          |
-| Builds, tests and application image publication              | User CI                                               |
-| Approved deployment/resource/capability intent and history   | Control-plane PostgreSQL                              |
-| Managed cluster projections                                  | Agent reflecting approved desired revisions           |
-| Namespace, guardrails, identities and generated Flux objects | Trusted environment registrar                         |
-| Application workloads                                        | Flux using application-scoped identities              |
-| Approved AWS resources                                       | Optional Crossplane compositions and scoped providers |
-| Database/certificate internals                               | CloudNativePG/cert-manager respectively               |
-| Controller installation/shared substrate                     | Operator tooling; later delegated capability manager  |
+| State/resource                                               | Sole authority or writer                                       |
+| ------------------------------------------------------------ | -------------------------------------------------------------- |
+| Application definition and build inputs                      | Versioned application source                                   |
+| Builds, tests and application image publication              | User CI                                                        |
+| Approved deployment/resource/capability intent and history   | Control-plane PostgreSQL                                       |
+| Managed cluster projections                                  | Agent reflecting approved desired revisions                    |
+| Namespace, guardrails, identities and generated Flux objects | Trusted environment registrar                                  |
+| Application workloads                                        | Flux using application-scoped identities                       |
+| Approved AWS resources                                       | Optional Crossplane managed resources through scoped providers |
+| Database/certificate internals                               | CloudNativePG/cert-manager respectively                        |
+| Controller installation/shared substrate                     | Operator tooling; later delegated capability manager           |
 
 Agents report observations and execute approved intent; they do not decide promotion or
 overwrite desired state. Cluster projections are not another editable source of truth.
@@ -144,7 +144,9 @@ See the [authority decision](decisions/0002-state-and-reconciliation.md).
 
 Core application/release/operation/observation contracts have executable validation.
 Accounts, project grants, single-use enrollment, agent leases/revocation and MCP grants
-are durable; capability/resource types still do not imply installation/allocation APIs.
+are durable. The [optional AWS profile](runtime/cloud/README.md) implements typed
+resource allocation and binding APIs. Generic capability installation and PostgreSQL
+allocation retain their separate evidence gates.
 Persistence establishes operator-owned organization/project placement and rejects reassignment.
 One-organization v1 does not justify trusting caller-supplied tenant IDs.
 
@@ -162,7 +164,8 @@ The [authentication contract](runtime/authentication.md) separates human session
 OIDC/provenance, enrolled agent credentials and delegated MCP grants. The Go API checks
 current authority at each boundary; the Next.js server forwards the session through an
 uncached server-only data layer. MCP uses an explicitly consented project subset and
-cannot mutate even when its human owner is an administrator.
+can select admitted nonproduction releases and retry/cancel through explicit operation
+consent. Cloud administration and adoption remain outside those grants.
 
 The [hosted boundary](architecture/hosted-control-plane.md) preserves customer ownership,
 outbound agent sessions, outage behavior, and portable recovery. Hosted topology alone
