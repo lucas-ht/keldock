@@ -70,7 +70,7 @@ func (store *Store) Retry(ctx context.Context, scope v1.Scope, actor, id string,
 			return receipt, ErrDenied
 		}
 		var allowed bool
-		if err = tx.QueryRow(ctx, `SELECT NOT closed AND head_commit=$4 FROM pull_requests WHERE organization_id=$1 AND project_id=$2 AND number=$3 FOR SHARE`, scope.OrganizationID, scope.ProjectID, pull, sourceHead).Scan(&allowed); err != nil || !allowed {
+		if err = tx.QueryRow(ctx, `SELECT NOT closed AND head_commit=$4 AND head_repository_id=(SELECT repository_id FROM projects WHERE organization_id=$1 AND id=$2) FROM pull_requests WHERE organization_id=$1 AND project_id=$2 AND number=$3 FOR SHARE`, scope.OrganizationID, scope.ProjectID, pull, sourceHead).Scan(&allowed); err != nil || !allowed {
 			return receipt, ErrStale
 		}
 	}

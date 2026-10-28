@@ -118,7 +118,7 @@ func waitState(t *testing.T, ctx context.Context, registrar *cluster.Registrar, 
 			return last
 		}
 		if lastError == nil && last.State == "failed" && state == "ready" {
-			for _, kind := range []string{"pods", "services", "endpointslices", "networkpolicies"} {
+			for _, kind := range []string{"pods", "jobs", "events", "services", "endpointslices", "networkpolicies"} {
 				data, err := kube(t, ctx, "get", kind, "-n", selection.Namespace, "-o", "yaml")
 				t.Logf("failure diagnostic %s: %s (%v)", kind, data, err)
 			}

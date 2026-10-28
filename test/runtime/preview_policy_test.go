@@ -179,6 +179,15 @@ func TestPreviewRetryRejectsChangedHeadAndExpiredIntent(t *testing.T) {
 	update.HeadCommit = input.Source.HeadCommit
 	update.UpdatedAt = update.UpdatedAt.Add(time.Second)
 	record("retry-restored-head")
+	update.HeadRepositoryID = 99
+	update.UpdatedAt = update.UpdatedAt.Add(time.Second)
+	record("retry-foreign-head")
+	if _, err = store.Retry(ctx, scope, "operator", receipt.OperationID, receipt.Generation, "retry-foreign-repository"); !errors.Is(err, postgres.ErrStale) {
+		t.Fatal("retry accepted foreign head repository", err)
+	}
+	update.HeadRepositoryID = 42
+	update.UpdatedAt = update.UpdatedAt.Add(time.Second)
+	record("retry-restored-repository")
 	if _, err = store.Pool().Exec(ctx, `UPDATE environments SET expires_at=now()-interval '1 second' WHERE id=$1`, receipt.EnvironmentID); err != nil {
 		t.Fatal(err)
 	}
