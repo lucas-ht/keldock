@@ -77,6 +77,14 @@ The completed check used AWS's documented older-session deny and a longer bounde
 the running provider reported actual GetBucketVersioning AccessDenied and the retained
 SDK session was denied. This establishes observed revocation, not an instantaneous SLA.
 
+Hosted CI initially failed existing workload/registry acceptance checks because pods
+could not schedule. A subsequent instrumented run recorded `DiskPressure=True` and
+the `node.kubernetes.io/disk-pressure:NoSchedule` taint during the CLI build, while
+memory/PID pressure stayed false and the node stayed Ready. The runtime job now frees
+only the unused Android SDK at `/usr/local/lib/android/sdk` on a verified disposable
+GitHub-hosted Linux runner. Capacity monitoring remains in CI, and the local cluster's
+10% disk reserve and workload tolerations are unchanged.
+
 ## Cleanup and scope
 
 Retention was proved before the separately approved destructive fixture cleanup. Verified
@@ -103,3 +111,6 @@ workflow are accepted; production availability and public workload reachability 
 - [Community provider 2.9.0 API source](https://github.com/crossplane-contrib/provider-upjet-aws/tree/v2.9.0)
 
 - [AWS role-session revocation](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_revoke-sessions.html)
+- [Kubernetes node-pressure eviction](https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/)
+- [GitHub-hosted runner capacity](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+- [Official Ubuntu 24.04 runner SDK locations](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md)

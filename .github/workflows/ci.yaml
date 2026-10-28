@@ -39,6 +39,17 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - name: Reserve disk for the disposable cluster
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          printf 'Target: disposable runner %s; repository %s; job %s; unused SDK /usr/local/lib/android/sdk\n' "$RUNNER_NAME" "$GITHUB_REPOSITORY" "$GITHUB_JOB"
+          df -h /
+          if [ -d /usr/local/lib/android/sdk ]; then
+            du -sh /usr/local/lib/android/sdk
+            sudo rm -rf -- /usr/local/lib/android/sdk
+          fi
+          df -h /
       - name: Set up pinned tools
         uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
