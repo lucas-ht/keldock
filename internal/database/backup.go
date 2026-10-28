@@ -100,10 +100,15 @@ func (e BackupEvidence) Valid() bool {
 	if len(e.Reason) > 160 || strings.Trim(e.Reason, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != "" {
 		return false
 	}
-	for _, name := range []string{e.BaseBackup, e.RestoreNamespace, e.RestoreName, e.RestoreUID} {
+	for _, name := range []string{e.BaseBackup, e.RestoreNamespace, e.RestoreName} {
 		if name != "" && (!v1.ValidName(name) || len(name) > 80) {
 			return false
 		}
+	}
+	// Kubernetes UIDs are opaque identities, commonly UUIDs beginning with a
+	// digit. They are not product names, which deliberately start with a letter.
+	if len(e.RestoreUID) > 80 || strings.Trim(e.RestoreUID, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-") != "" {
+		return false
 	}
 	for _, at := range []*time.Time{e.LastArchivedAt, e.LastBaseBackupAt} {
 		if at != nil && (at.IsZero() || at.After(time.Now().Add(time.Minute))) {
