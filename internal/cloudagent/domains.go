@@ -17,6 +17,12 @@ import (
 
 func (driver *Driver) domain(ctx context.Context, policy cloud.Policy, conn cloud.Connection, item cloud.Intent) cloud.Evidence {
 	claim := *item.Domain
+	if claim.ConnectionGeneration != conn.Generation {
+		if err := driver.suspendDomain(ctx, policy, conn, claim); err != nil {
+			return unavailable(err, conn.Generation)
+		}
+		return evidence("suspended", "ConnectionRevisionRequiresExplicitRefresh", conn.Generation)
+	}
 	marker, address, err := crossplane.DNSRecords(policy, conn, claim)
 	if err != nil {
 		return evidence("failed", "DomainOutsideLocalPolicy", conn.Generation)

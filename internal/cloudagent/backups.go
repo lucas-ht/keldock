@@ -75,9 +75,9 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 		}
 		return report
 	}
-	objectName := fmt.Sprintf("archive-%s-g%d", cloud.ShortIdentity(item.ID), binding.ArchiveGeneration)
+	objectName := fmt.Sprintf("archive-%s-g%d", cloud.BackupKey(item.Scope, item.ID), binding.ArchiveGeneration)
 	store := objectStore(target.Namespace, objectName, resource.Resource.ExternalName, binding.ArchivePrefix)
-	if err := driver.applyBackupObject(ctx, store, item.ID); err != nil {
+	if err := driver.applyBackupObject(ctx, store, cloud.BackupKey(item.Scope, item.ID)); err != nil {
 		return unavailable(err, conn.Generation)
 	}
 	if err := driver.configureSource(ctx, source, item, objectName, conn.Region); err != nil {
@@ -101,13 +101,13 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 	if attempt < 1 {
 		attempt = 1
 	}
-	baseName := fmt.Sprintf("base-%s-g%d-r%d", cloud.ShortIdentity(item.ID), binding.ArchiveGeneration, attempt)
+	baseName := fmt.Sprintf("base-%s-g%d-r%d", cloud.BackupKey(item.Scope, item.ID), binding.ArchiveGeneration, attempt)
 	base := map[string]any{"apiVersion": "postgresql.cnpg.io/v1", "kind": "Backup", "metadata": map[string]any{"name": baseName, "namespace": target.Namespace}, "spec": map[string]any{"cluster": map[string]string{"name": target.Name}, "method": "plugin", "pluginConfiguration": map[string]string{"name": "barman-cloud.cloudnative-pg.io"}}}
-	if err := driver.applyBackupObject(ctx, base, item.ID); err != nil {
+	if err := driver.applyBackupObject(ctx, base, cloud.BackupKey(item.Scope, item.ID)); err != nil {
 		return unavailable(err, conn.Generation)
 	}
-	schedule := map[string]any{"apiVersion": "postgresql.cnpg.io/v1", "kind": "ScheduledBackup", "metadata": map[string]any{"name": "schedule-" + cloud.ShortIdentity(item.ID), "namespace": target.Namespace}, "spec": map[string]any{"schedule": "0 " + binding.Schedule, "suspend": binding.SchedulePaused, "backupOwnerReference": "self", "cluster": map[string]string{"name": target.Name}, "method": "plugin", "pluginConfiguration": map[string]string{"name": "barman-cloud.cloudnative-pg.io"}}}
-	if err := driver.applyBackupObject(ctx, schedule, item.ID); err != nil {
+	schedule := map[string]any{"apiVersion": "postgresql.cnpg.io/v1", "kind": "ScheduledBackup", "metadata": map[string]any{"name": "schedule-" + cloud.BackupKey(item.Scope, item.ID), "namespace": target.Namespace}, "spec": map[string]any{"schedule": "0 " + binding.Schedule, "suspend": binding.SchedulePaused, "backupOwnerReference": "self", "cluster": map[string]string{"name": target.Name}, "method": "plugin", "pluginConfiguration": map[string]string{"name": "barman-cloud.cloudnative-pg.io"}}}
+	if err := driver.applyBackupObject(ctx, schedule, cloud.BackupKey(item.Scope, item.ID)); err != nil {
 		return unavailable(err, conn.Generation)
 	}
 	report := evidence("reconciling", "BaseBackupAndWALPending", conn.Generation)

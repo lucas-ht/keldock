@@ -48,16 +48,18 @@ func (worker *Agent) Step(ctx context.Context) error {
 		if err := worker.Client.CloudRPC(ctx, http.MethodGet, "desired", nil, &fresh); err != nil {
 			return err
 		}
-		items, err := worker.validateSnapshot(fresh.Items)
+		groups, err := worker.validateSnapshot(fresh.Items)
 		if err != nil {
 			return err
 		}
+		items := groups[listed.ProjectID]
 		current, exists := items[listed.ID]
 		if !exists || current.Generation != listed.Generation || current.Action != listed.Action {
 			continue
 		}
 		policy := worker.Policies[current.ProjectID]
 		report := worker.Driver.Reconcile(ctx, policy, current, items)
+		report.ProjectID = current.ProjectID
 		report.ID = current.ID
 		report.Generation = current.Generation
 		report.ObservedAt = time.Now().UTC()
@@ -68,11 +70,11 @@ func (worker *Agent) Step(ctx context.Context) error {
 	return errors.Join(failures...)
 }
 
-func (worker *Agent) validateSnapshot(snapshot []cloud.Intent) (map[string]cloud.Intent, error) {
+func (worker *Agent) validateSnapshot(snapshot []cloud.Intent) (map[string]map[string]cloud.Intent, error) {
 	if len(snapshot) > 1000 {
 		return nil, fmt.Errorf("cloud inventory exceeds supported bound")
 	}
-	items := map[string]cloud.Intent{}
+	items := map[string]map[string]cloud.Intent{}
 	counts := map[string]int{}
 	for _, item := range snapshot {
 		policy, ok := worker.Policies[item.ProjectID]
@@ -86,10 +88,13 @@ func (worker *Agent) validateSnapshot(snapshot []cloud.Intent) (map[string]cloud
 				return nil, fmt.Errorf("cloud snapshot exceeds local resource capacity")
 			}
 		}
-		if _, duplicate := items[item.ID]; duplicate {
+		if items[item.ProjectID] == nil {
+			items[item.ProjectID] = map[string]cloud.Intent{}
+		}
+		if _, duplicate := items[item.ProjectID][item.ID]; duplicate {
 			return nil, fmt.Errorf("duplicate cloud inventory identity")
 		}
-		items[item.ID] = item
+		items[item.ProjectID][item.ID] = item
 	}
 	return items, nil
 }

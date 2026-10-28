@@ -18,8 +18,8 @@ func TestBackupCannotSelectAnotherWriterArchiveOrRestoreTarget(t *testing.T) {
 	item := cloud.Intent{Scope: scope, ID: "cloud-test"}
 	_, writer := cloud.WorkloadIdentity(conn, policy.Profiles[resource.Profile], item.ID, "writer")
 	_, reader := cloud.WorkloadIdentity(conn, policy.Profiles[resource.Profile], item.ID, "restore")
-	prefix := "archives/test/generation-1"
-	base := cloud.BackupBinding{DatabaseID: "source", Database: target, WriterRoleARN: writer, RestoreRoleARN: reader, ArchiveGeneration: 1, ArchivePrefix: prefix, Archives: []cloud.ArchiveGeneration{{Generation: 1, Prefix: prefix}}, RestoreName: "restore-" + cloud.ShortIdentity(item.ID), Schedule: "*/15 * * * *", BaseAttempt: 1}
+	prefix := cloud.ArchivePrefix(item.Scope, item.ID, 1)
+	base := cloud.BackupBinding{DatabaseID: "source", Database: target, WriterRoleARN: writer, RestoreRoleARN: reader, ArchiveGeneration: 1, ArchivePrefix: prefix, Archives: []cloud.ArchiveGeneration{{Generation: 1, Prefix: prefix}}, RestoreName: "restore-" + cloud.BackupKey(item.Scope, item.ID), Schedule: "*/15 * * * *", BaseAttempt: 1}
 	item.Backup = &base
 	if !validBackup(policy, conn, item, resource) {
 		t.Fatal("approved backup rejected")

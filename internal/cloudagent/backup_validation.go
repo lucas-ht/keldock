@@ -1,7 +1,6 @@
 package cloudagent
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/lucas-ht/keldock/internal/cloud"
@@ -11,7 +10,7 @@ import (
 // Revalidate every privileged target against independent operator configuration.
 func validBackup(policy cloud.Policy, conn cloud.Connection, item cloud.Intent, resource cloud.Resource) bool {
 	b := item.Backup
-	if b == nil || b.ArchiveGeneration < 1 || b.ArchiveGeneration > 16 || int64(len(b.Archives)) != b.ArchiveGeneration || b.BaseAttempt < 0 || b.BaseAttempt > 10 || b.RestoreGeneration < 0 || b.RestoreGeneration > b.ArchiveGeneration || b.RestoreName != "restore-"+cloud.ShortIdentity(item.ID) {
+	if b == nil || b.ArchiveGeneration < 1 || b.ArchiveGeneration > 16 || int64(len(b.Archives)) != b.ArchiveGeneration || b.BaseAttempt < 0 || b.BaseAttempt > 10 || b.RestoreGeneration < 0 || b.RestoreGeneration > b.ArchiveGeneration || b.RestoreName != "restore-"+cloud.BackupKey(item.Scope, item.ID) {
 		return false
 	}
 	target, ok := policy.Databases[b.DatabaseID]
@@ -35,7 +34,7 @@ func validBackup(policy cloud.Policy, conn cloud.Connection, item cloud.Intent, 
 	}
 	for index, archive := range b.Archives {
 		generation := int64(index + 1)
-		expected := fmt.Sprintf("archives/%s/generation-%d", strings.TrimPrefix(item.ID, "cloud-"), generation)
+		expected := cloud.ArchivePrefix(item.Scope, item.ID, generation)
 		if archive.Generation != generation || archive.Prefix != expected {
 			return false
 		}

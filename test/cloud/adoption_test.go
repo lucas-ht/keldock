@@ -24,7 +24,7 @@ func TestAdoptionRequiresReleasedWriterCurrentReviewAndConfirmedDisconnect(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ID: receipt.ID, Generation: 1, ConnectionGeneration: 1, State: "ready", Reason: "SyntheticInventory", Details: map[string]string{"inventoryHash": hash}, ObservedAt: time.Now().UTC()}); err != nil {
+	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ProjectID: "sample", ID: receipt.ID, Generation: 1, ConnectionGeneration: 1, State: "ready", Reason: "SyntheticInventory", Details: map[string]string{"inventoryHash": hash}, ObservedAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
 	items, err := store.List(ctx, principal, "sample")
@@ -51,7 +51,7 @@ func TestAdoptionRequiresReleasedWriterCurrentReviewAndConfirmedDisconnect(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ID: receipt.ID, Generation: disconnected.Generation, ConnectionGeneration: 1, State: "disconnected", Reason: "SyntheticProjectionAbsent", ObservedAt: time.Now().UTC()}); err != nil {
+	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ProjectID: "sample", ID: receipt.ID, Generation: disconnected.Generation, ConnectionGeneration: 1, State: "disconnected", Reason: "SyntheticProjectionAbsent", ObservedAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
 	items, err = store.List(ctx, principal, "sample")

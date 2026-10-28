@@ -136,7 +136,7 @@ func (store *Store) backup(ctx context.Context, tx pgx.Tx, policy cloud.Policy, 
 	profile := policy.Profiles[resource.Resource.Profile]
 	_, writer := cloud.WorkloadIdentity(*conn.Connection, profile, item.ID, "writer")
 	_, reader := cloud.WorkloadIdentity(*conn.Connection, profile, item.ID, "restore")
-	prefix := "archives/" + strings.TrimPrefix(item.ID, "cloud-") + "/generation-1"
-	item.Backup = &cloud.BackupBinding{ResourceID: resource.ID, DatabaseID: request.DatabaseID, Database: target, ArchiveGeneration: 1, ArchivePrefix: prefix, WriterRoleARN: writer, RestoreRoleARN: reader, Schedule: request.Schedule, Archives: []cloud.ArchiveGeneration{{Generation: 1, Prefix: prefix}}, RestoreName: "restore-" + cloud.ShortIdentity(item.ID), BaseAttempt: 1}
+	prefix := cloud.ArchivePrefix(item.Scope, item.ID, 1)
+	item.Backup = &cloud.BackupBinding{ResourceID: resource.ID, DatabaseID: request.DatabaseID, Database: target, ArchiveGeneration: 1, ArchivePrefix: prefix, WriterRoleARN: writer, RestoreRoleARN: reader, Schedule: request.Schedule, Archives: []cloud.ArchiveGeneration{{Generation: 1, Prefix: prefix}}, RestoreName: "restore-" + cloud.BackupKey(item.Scope, item.ID), BaseAttempt: 1}
 	return item, nil
 }

@@ -89,7 +89,7 @@ func verifyConnection(t *testing.T, ctx context.Context, store *cloudstore.Store
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ID: receipt.ID, Generation: 1, State: "ready", Reason: "SyntheticIdentityFixture", Details: map[string]string{"account": request.Account}, ObservedAt: time.Now().UTC()}); err != nil {
+	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ProjectID: "sample", ID: receipt.ID, Generation: 1, State: "ready", Reason: "SyntheticIdentityFixture", Details: map[string]string{"account": request.Account}, ObservedAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
 	return receipt

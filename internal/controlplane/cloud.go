@@ -6,6 +6,7 @@ import (
 
 	"github.com/lucas-ht/keldock/internal/access"
 	"github.com/lucas-ht/keldock/internal/cloud"
+	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/storage/postgres"
 )
 
@@ -112,13 +113,18 @@ func (api *API) cloudCurrent(w http.ResponseWriter, r *http.Request) {
 		failure(w, err)
 		return
 	}
+	project := r.URL.Query().Get("project")
+	if !v1.ValidName(project) {
+		failure(w, access.ErrInvalid)
+		return
+	}
 	items, err := api.Cloud.Desired(r.Context(), identity.OrganizationID, identity.ClusterID)
 	if err != nil {
 		failure(w, err)
 		return
 	}
 	for _, item := range items {
-		if item.ID == r.PathValue("intent") {
+		if item.ProjectID == project && item.ID == r.PathValue("intent") {
 			writeJSON(w, http.StatusOK, item)
 			return
 		}

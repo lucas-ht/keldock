@@ -47,7 +47,7 @@ func TestCloudReceiptsAuthorityAndRetainedInventory(t *testing.T) {
 	if err != nil || retained.Generation != 2 {
 		t.Fatal(err)
 	}
-	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ID: first.ID, Generation: 1, ConnectionGeneration: 1, State: "ready", Reason: "OldEvidence", ObservedAt: time.Now().UTC()}); !errors.Is(err, postgres.ErrStale) {
+	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ProjectID: "sample", ID: first.ID, Generation: 1, ConnectionGeneration: 1, State: "ready", Reason: "OldEvidence", ObservedAt: time.Now().UTC()}); !errors.Is(err, postgres.ErrStale) {
 		t.Fatal("stale cloud evidence accepted", err)
 	}
 	items, err := store.List(ctx, principal, "sample")
@@ -79,7 +79,7 @@ func TestCloudConnectionRevisionAndQuota(t *testing.T) {
 	if _, err := store.Mutate(ctx, principal, "sample", "suspend-cloud-connection", command(t, "lifecycle", connection.ID, cloud.Mutation{Generation: 1, Action: "suspend"})); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ID: connection.ID, Generation: 2, State: "ready", Details: map[string]string{"account": "123456789012"}, ObservedAt: time.Now().UTC()}); !errors.Is(err, postgres.ErrStale) {
+	if err := store.Observe(ctx, principal.User.OrganizationID, "keldock-m1", cloud.Evidence{ProjectID: "sample", ID: connection.ID, Generation: 2, State: "ready", Details: map[string]string{"account": "123456789012"}, ObservedAt: time.Now().UTC()}); !errors.Is(err, postgres.ErrStale) {
 		t.Fatal("disabled connection became ready")
 	}
 	if _, err := store.Mutate(ctx, principal, "sample", "disabled-cloud-denial", request); !errors.Is(err, access.ErrDenied) {

@@ -12,7 +12,7 @@ import (
 
 // Observe accepts current evidence only from the independently authenticated cloud agent.
 func (store *Store) Observe(ctx context.Context, organization, cluster string, report cloud.Evidence) error {
-	if !v1.ValidName(report.ID) || report.Generation < 1 || len(report.Reason) > 128 || len(report.Details) > 32 || report.ObservedAt.Before(time.Now().Add(-5*time.Minute)) || report.ObservedAt.After(time.Now().Add(time.Minute)) {
+	if !v1.ValidName(report.ProjectID) || !v1.ValidName(report.ID) || report.Generation < 1 || len(report.Reason) > 128 || len(report.Details) > 32 || report.ObservedAt.Before(time.Now().Add(-5*time.Minute)) || report.ObservedAt.After(time.Now().Add(time.Minute)) {
 		return access.ErrInvalid
 	}
 	for key, value := range report.Details {
@@ -26,7 +26,7 @@ func (store *Store) Observe(ctx context.Context, organization, cluster string, r
 		return access.ErrInvalid
 	}
 	var project string
-	if err := store.Pool.QueryRow(ctx, `SELECT project_id FROM cloud_intents WHERE organization_id=$1 AND cluster_id=$2 AND id=$3`, organization, cluster, report.ID).Scan(&project); err != nil {
+	if err := store.Pool.QueryRow(ctx, `SELECT project_id FROM cloud_intents WHERE organization_id=$1 AND cluster_id=$2 AND id=$3 AND project_id=$4`, organization, cluster, report.ID, report.ProjectID).Scan(&project); err != nil {
 		return postgres.ErrNotFound
 	}
 	policy, ok := store.Policies[project]

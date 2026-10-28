@@ -3,8 +3,6 @@ package store
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -74,7 +72,7 @@ func (store *Store) lifecycle(ctx context.Context, tx pgx.Tx, policy cloud.Polic
 		}
 		item.Backup.ArchiveGeneration++
 		item.Backup.BaseAttempt = 1
-		item.Backup.ArchivePrefix = fmt.Sprintf("archives/%s/generation-%d", strings.TrimPrefix(item.ID, "cloud-"), item.Backup.ArchiveGeneration)
+		item.Backup.ArchivePrefix = cloud.ArchivePrefix(item.Scope, item.ID, item.Backup.ArchiveGeneration)
 		item.Backup.Archives = append(item.Backup.Archives, cloud.ArchiveGeneration{Generation: item.Backup.ArchiveGeneration, Prefix: item.Backup.ArchivePrefix})
 		request.Action = "reconcile"
 	case "restore":

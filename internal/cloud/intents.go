@@ -28,6 +28,7 @@ type Intent struct {
 
 // Evidence reports identity, external effects and controller state separately.
 type Evidence struct {
+	ProjectID            string            `json:"projectId"`
 	ID                   string            `json:"id"`
 	Generation           int64             `json:"generation"`
 	ConnectionGeneration int64             `json:"connectionGeneration"`
