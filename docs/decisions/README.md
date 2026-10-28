@@ -11,6 +11,7 @@ Update the architecture and affected acceptance gates when superseding a decisio
 | [0004: First runtime profile](0004-first-runtime-profile.md)                               | Accepted; experimental development profile              |
 | [0005: Shared authentication and remote MCP](0005-shared-authentication-and-remote-mcp.md) | Accepted; implemented experimental M2 profile           |
 | [0006: Bounded nonproduction operations](0006-bounded-nonproduction-operations.md)         | Accepted; implemented experimental M4 profile           |
+| [0007: Optional AWS profile](0007-optional-aws-profile.md)                                 | Implementation in progress; cloud acceptance pending    |
 
 Unsettled implementation choices belong in [M1](../implementation-plan.md#m1-contracts-and-bounded-spikes).
 Do not infer a runtime pin or a supported compatibility profile from an architectural

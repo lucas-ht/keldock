@@ -28,7 +28,10 @@ func main() {
 
 func run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: keldock serve|agent|enroll|bootstrap|recover|inspect|validate|prepare|attest|keygen")
+		return fmt.Errorf("usage: keldock serve|agent|enroll|bootstrap|recover|inspect|validate|prepare|attest|keygen|cloud")
+	}
+	if args[0] == "cloud" {
+		return cloudCommand(args[1:])
 	}
 	if args[0] == "prepare" {
 		return prepareCommand(args[1:])
