@@ -37,8 +37,9 @@ checkout count as current evidence. Do not claim historical prototypes still exi
   Flux manifests, deployment Git repository, Helm/Terraform, or cluster credentials.
 - Flux reconciles application workloads through application-scoped identities. Keldock
   owns selection, registration, and its generated Flux configuration.
-- Optional Crossplane owns only approved cloud resources assigned to its compositions.
-  No two reconcilers may continuously own the same resource.
+- Optional Crossplane reconciles only approved cloud resources through namespaced
+  managed resources in the selected provider profile. No two reconcilers may
+  continuously own the same resource.
 - Separate capability installation, resource allocation, and application bindings.
   Controller management requires explicit operator delegation and one active owner.
 - Keep public endpoints, workload reconciliation, and privileged provisioning in
