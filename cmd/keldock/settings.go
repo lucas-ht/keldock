@@ -19,6 +19,7 @@ type repositorySettings struct {
 	WorkflowPath   string            `json:"workflowPath"`
 	PushRef        string            `json:"pushRef"`
 	ProvenanceKeys map[string]string `json:"provenanceKeys"`
+	Previews       v1.PreviewPolicy  `json:"previews"`
 }
 
 type controlSettings struct {

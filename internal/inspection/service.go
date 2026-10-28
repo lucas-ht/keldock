@@ -2,6 +2,7 @@ package inspection
 
 import (
 	"context"
+	"encoding/json"
 	"slices"
 
 	"github.com/lucas-ht/keldock/internal/access"
@@ -13,6 +14,7 @@ import (
 type Service struct {
 	Store        *postgres.Store
 	Organization string
+	PublicURL    string
 	Projects     map[string]v1.Project
 }
 
@@ -36,8 +38,12 @@ func (service *Service) ListProjects(ctx context.Context, principal access.Princ
 	slices.Sort(ids)
 	for _, id := range ids {
 		item := Project{Project: service.Projects[id]}
-		err := service.Store.Pool().QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE o.state='ready'),count(*) FILTER(WHERE o.state IN ('failed','canceled')) FROM environments e JOIN operations o ON o.environment_id=e.id AND o.generation=e.generation WHERE e.organization_id=$1 AND e.project_id=$2 AND NOT e.deleted`, service.Organization, id).Scan(&item.Environments, &item.Ready, &item.Attention)
+		var policy []byte
+		err := service.Store.Pool().QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE o.state='ready'),count(*) FILTER(WHERE o.state IN ('failed','canceled')),(SELECT preview_policy FROM projects WHERE organization_id=$1 AND id=$2) FROM environments e JOIN operations o ON o.environment_id=e.id AND o.generation=e.generation WHERE e.organization_id=$1 AND e.project_id=$2 AND NOT e.deleted`, service.Organization, id).Scan(&item.Environments, &item.Ready, &item.Attention, &policy)
 		if err != nil {
+			return result, err
+		}
+		if err := json.Unmarshal(policy, &item.Previews); err != nil {
 			return result, err
 		}
 		result.Items = append(result.Items, item)

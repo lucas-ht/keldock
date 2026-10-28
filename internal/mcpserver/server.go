@@ -11,6 +11,7 @@ import (
 	"github.com/lucas-ht/keldock/internal/access"
 	"github.com/lucas-ht/keldock/internal/access/mcpidentity"
 	"github.com/lucas-ht/keldock/internal/inspection"
+	"github.com/lucas-ht/keldock/internal/operations"
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -20,12 +21,13 @@ type credentialKey struct{}
 type adapter struct {
 	identity *mcpidentity.Repository
 	reads    *inspection.Service
+	writes   *operations.Service
 }
 
 // Handler requires an OAuth bearer even when a browser administrator cookie is present.
 // Stateless transport deliberately avoids an authenticated-session cache across requests.
-func Handler(identity *mcpidentity.Repository, reads *inspection.Service) http.Handler {
-	adapter := &adapter{identity: identity, reads: reads}
+func Handler(identity *mcpidentity.Repository, reads *inspection.Service, writes *operations.Service) http.Handler {
+	adapter := &adapter{identity: identity, reads: reads, writes: writes}
 	server := adapter.server()
 	transport := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 64 * 1024, PropagateRequestCancellation: true})
 	verify := func(ctx context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {

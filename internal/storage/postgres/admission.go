@@ -16,6 +16,15 @@ import (
 // Admit atomically records immutable selection, receipt, audit and durable dispatch.
 // Authentication, provenance and target policy must already have been checked by admission.
 func (store *Store) Admit(ctx context.Context, scope v1.Scope, actor, key, hostname string, input v1.SubmitRelease) (v1.Receipt, error) {
+	return store.admit(ctx, scope, actor, key, hostname, "", input)
+}
+
+// AdmitToDomain derives routing from the stable stored target and operator-owned domain.
+func (store *Store) AdmitToDomain(ctx context.Context, scope v1.Scope, actor, key, domain string, input v1.SubmitRelease) (v1.Receipt, error) {
+	return store.admit(ctx, scope, actor, key, "", domain, input)
+}
+
+func (store *Store) admit(ctx context.Context, scope v1.Scope, actor, key, hostname, domain string, input v1.SubmitRelease) (v1.Receipt, error) {
 	var receipt v1.Receipt
 	if err := input.Validate(); err != nil {
 		return receipt, err
@@ -34,8 +43,16 @@ func (store *Store) Admit(ctx context.Context, scope v1.Scope, actor, key, hostn
 	defer rollback(ctx, tx)
 	var cluster string
 	var repository int64
-	if err := tx.QueryRow(ctx, `SELECT cluster_id,repository_id FROM projects WHERE organization_id=$1 AND id=$2 FOR SHARE`, scope.OrganizationID, scope.ProjectID).Scan(&cluster, &repository); err != nil {
+	var policyData []byte
+	var policy v1.PreviewPolicy
+	if err := tx.QueryRow(ctx, `SELECT cluster_id,repository_id,preview_policy FROM projects WHERE organization_id=$1 AND id=$2 FOR UPDATE`, scope.OrganizationID, scope.ProjectID).Scan(&cluster, &repository, &policyData); err != nil {
 		return receipt, ErrDenied
+	}
+	if err := json.Unmarshal(policyData, &policy); err != nil {
+		return receipt, err
+	}
+	if policy, err = policy.Normalize(); err != nil {
+		return receipt, err
 	}
 	if repository != input.Source.RepositoryID {
 		return receipt, ErrDenied
@@ -59,6 +76,9 @@ func (store *Store) Admit(ctx context.Context, scope v1.Scope, actor, key, hostn
 		return receipt, err
 	}
 	if input.Source.PullRequest > 0 {
+		if policy.Profile == "disabled" {
+			return receipt, ErrDenied
+		}
 		var head string
 		var headRepository int64
 		var closed bool
@@ -67,18 +87,29 @@ func (store *Store) Admit(ctx context.Context, scope v1.Scope, actor, key, hostn
 			return receipt, ErrStale
 		}
 	}
-	environmentID := v1.EnvironmentID(scope, input.Definition.Name, input.Source.PullRequest)
+	environmentID, err := previewTarget(ctx, tx, scope, input.Definition.Name, input.Source.PullRequest, policy)
+	if err != nil {
+		return receipt, err
+	}
+	if domain != "" {
+		prefix := "preview-"
+		if input.Source.PullRequest == 0 {
+			prefix = "staging-"
+		}
+		hostname = prefix + strings.TrimPrefix(environmentID, "env-")[:12] + "." + domain
+	}
 	environmentHash := strings.TrimPrefix(environmentID, "env-")
-	_, err = tx.Exec(ctx, `INSERT INTO environments (id,organization_id,project_id,application,cluster_id,repository_id,pull_request) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, environmentID, scope.OrganizationID, scope.ProjectID, input.Definition.Name, cluster, repository, input.Source.PullRequest)
+	_, err = tx.Exec(ctx, `INSERT INTO environments (id,organization_id,project_id,application,cluster_id,repository_id,pull_request,kind) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING`, environmentID, scope.OrganizationID, scope.ProjectID, input.Definition.Name, cluster, repository, input.Source.PullRequest, environmentKind(input.Source.PullRequest))
 	if err != nil {
 		return receipt, err
 	}
 	var generation, run, attempt int64
 	var deleted bool
-	if err := tx.QueryRow(ctx, `SELECT generation,deleted,latest_run_id,latest_run_attempt FROM environments WHERE id=$1 FOR UPDATE`, environmentID).Scan(&generation, &deleted, &run, &attempt); err != nil {
+	var expiresAt *time.Time
+	if err := tx.QueryRow(ctx, `SELECT generation,deleted,latest_run_id,latest_run_attempt,expires_at FROM environments WHERE id=$1 FOR UPDATE`, environmentID).Scan(&generation, &deleted, &run, &attempt, &expiresAt); err != nil {
 		return receipt, err
 	}
-	if deleted || input.Source.RunID < run || (input.Source.RunID == run && input.Source.RunAttempt <= attempt) {
+	if deleted || (expiresAt != nil && !expiresAt.After(time.Now())) || input.Source.RunID < run || (input.Source.RunID == run && input.Source.RunAttempt <= attempt) {
 		return receipt, ErrStale
 	}
 	generation++
@@ -112,10 +143,10 @@ func (store *Store) Admit(ctx context.Context, scope v1.Scope, actor, key, hostn
 	}
 	var expires *time.Time
 	if input.Source.PullRequest > 0 {
-		value := time.Now().UTC().Add(24 * time.Hour)
+		value := time.Now().UTC().Add(time.Duration(policy.TTLSeconds) * time.Second)
 		expires = &value
 	}
-	if _, err := tx.Exec(ctx, `UPDATE environments SET generation=$2,latest_run_id=$3,latest_run_attempt=$4,expires_at=$5 WHERE id=$1`, environmentID, generation, input.Source.RunID, input.Source.RunAttempt, expires); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE environments SET generation=$2,latest_run_id=$3,latest_run_attempt=$4,expires_at=$5,application=$6 WHERE id=$1`, environmentID, generation, input.Source.RunID, input.Source.RunAttempt, expires, input.Definition.Name); err != nil {
 		return receipt, err
 	}
 	receipt = v1.Receipt{APIVersion: v1.APIVersion, ReleaseID: admittedRelease, EnvironmentID: environmentID, DeploymentID: deploymentID, OperationID: operationID, Generation: generation, StatusURL: "/v1/projects/" + scope.ProjectID + "/operations/" + operationID}

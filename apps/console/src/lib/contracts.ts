@@ -46,7 +46,32 @@ export type ComponentHealth = {
   observedGeneration: number;
   appliedRevision?: string;
 };
+export type Source = {
+  repositoryId: number;
+  ownerId: number;
+  repository: string;
+  commit: string;
+  headCommit?: string;
+  pullRequest?: number;
+  runId: number;
+  runAttempt: number;
+  ref: string;
+  event: string;
+  workflowRef: string;
+};
+export type Release = {
+  id: string;
+  application: string;
+  source: Source;
+  images: Record<string, string>;
+  admittedAt: string;
+};
 export type Environment = {
+  kind: "staging" | "preview" | "production";
+  pullRequestHead?: string;
+  pullRequestClosed: boolean;
+  deletionReason?: string;
+  url?: string;
   id: string;
   projectId: string;
   application: string;
@@ -58,13 +83,7 @@ export type Environment = {
   operation: Operation;
   releaseId: string;
   hostname: string;
-  source?: {
-    repository: string;
-    commit: string;
-    runId: number;
-    runAttempt: number;
-    ref: string;
-  };
+  source?: Source;
   images: Record<string, string>;
   components: {
     name: string;

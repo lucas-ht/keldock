@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -15,10 +14,7 @@ import (
 	"github.com/lucas-ht/keldock/internal/access/mcpidentity"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane"
-	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/modelcontextprotocol/go-sdk/oauthex"
-	"golang.org/x/oauth2"
 )
 
 func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
@@ -52,52 +48,7 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	if err := fixture.store.Observe(ctx, fixture.scope.OrganizationID, "keldock-m1", report); err != nil {
 		t.Fatal(err)
 	}
-	oauth, err := auth.NewAuthorizationCodeHandler(&auth.AuthorizationCodeHandlerConfig{
-		NewTokenSource: func(ctx context.Context, config *oauth2.Config, token *oauth2.Token) (oauth2.TokenSource, error) {
-			expired := *token
-			expired.Expiry = time.Now().Add(-time.Minute)
-			return config.TokenSource(ctx, &expired), nil
-		},
-		RedirectURL:                     "http://127.0.0.1:39157/callback",
-		DynamicClientRegistrationConfig: &auth.DynamicClientRegistrationConfig{Metadata: &oauthex.ClientRegistrationMetadata{ClientName: "Keldock SDK acceptance", RedirectURIs: []string{"http://127.0.0.1:39157/callback"}, Scope: mcpidentity.ReadScope, GrantTypes: []string{"authorization_code", "refresh_token"}, TokenEndpointAuthMethod: "none"}},
-		AuthorizationCodeFetcher: func(ctx context.Context, args *auth.AuthorizationArgs) (*auth.AuthorizationResult, error) {
-			request, err := http.NewRequestWithContext(ctx, http.MethodGet, args.URL, nil)
-			if err != nil {
-				return nil, err
-			}
-			response, err := (&http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(request)
-			if err != nil {
-				return nil, err
-			}
-			_, _ = io.Copy(io.Discard, response.Body)
-			_ = response.Body.Close()
-			if response.StatusCode != http.StatusSeeOther {
-				t.Fatalf("authorize: %d", response.StatusCode)
-			}
-			location, err := url.Parse(response.Header.Get("Location"))
-			if err != nil {
-				return nil, err
-			}
-			id := location.Query().Get("request")
-			var consent struct {
-				RedirectURL string `json:"redirectUrl"`
-			}
-			fixture.call(t, http.MethodPost, "/v1/mcp/authorizations/"+id+"/consent", fixture.userHeaders(), map[string]any{"allow": true, "projects": []string{"sample"}}, &consent, http.StatusOK)
-			callback, err := url.Parse(consent.RedirectURL)
-			if err != nil {
-				return nil, err
-			}
-			return &auth.AuthorizationResult{Code: callback.Query().Get("code"), State: callback.Query().Get("state"), Iss: callback.Query().Get("iss")}, nil
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "keldock-acceptance", Version: "1.0.0"}, nil)
-	session, err := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: fixture.server.URL + "/mcp", OAuthHandler: oauth, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	session, oauth := sdkMCP(t, fixture, ctx, mcpidentity.ReadScope)
 	defer func() { _ = session.Close() }()
 	var refreshes int
 	if err := fixture.store.Pool().QueryRow(ctx, `SELECT count(*) FROM access_mcp_tokens t JOIN access_mcp_grants g ON g.id=t.grant_id JOIN access_mcp_clients c ON c.id=g.client_id WHERE c.organization_id=$1 AND t.kind='refresh'`, fixture.scope.OrganizationID).Scan(&refreshes); err != nil || refreshes < 2 {
@@ -105,16 +56,19 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	}
 
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 5 {
+	if err != nil || len(tools.Tools) != 9 {
 		t.Fatalf("tools: %v %v", tools, err)
 	}
+	allowed := map[string]bool{"list_projects": true, "list_environments": true, "get_environment": true, "get_operation": true, "get_diagnostics": true, "list_releases": true, "deploy_release": false, "retry_operation": false, "cancel_operation": false}
 	for _, tool := range tools.Tools {
-		if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
-			t.Fatal("MCP exposed a non-read tool")
+		read, exists := allowed[tool.Name]
+		if !exists || tool.Annotations == nil || tool.Annotations.ReadOnlyHint != read {
+			t.Fatal("unexpected MCP authority surface", tool.Name)
 		}
 	}
 	for _, call := range []*mcp.CallToolParams{
 		{Name: "list_projects", Arguments: map[string]any{}},
+		{Name: "list_releases", Arguments: map[string]any{"projectId": "sample"}},
 		{Name: "list_environments", Arguments: map[string]any{"projectId": "sample"}},
 		{Name: "get_environment", Arguments: map[string]any{"projectId": "sample", "environmentId": receipt.EnvironmentID}},
 		{Name: "get_operation", Arguments: map[string]any{"projectId": "sample", "operationId": receipt.OperationID}},

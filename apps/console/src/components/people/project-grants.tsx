@@ -15,12 +15,14 @@ export function ProjectGrants({
   onChange,
   admin = false,
   readOnly = false,
+  operationAccess = false,
 }: {
   projects: Project[];
   selected: string[];
   onChange: (value: string[]) => void;
   admin?: boolean;
   readOnly?: boolean;
+  operationAccess?: boolean;
 }) {
   return (
     <FieldSet>
@@ -28,9 +30,11 @@ export function ProjectGrants({
       <FieldDescription>
         {admin
           ? "Administrators can access all configured projects and manage the installation."
-          : readOnly
-            ? "Select the projects this connection can read. It cannot perform deployment or administration actions."
-            : "Select the projects this person can read. Operators can also retry and cancel deployments in these projects."}
+          : operationAccess
+            ? "Select the projects this connection can inspect and operate in nonproduction. Administrative access is excluded."
+            : readOnly
+              ? "Select the projects this connection can read. It cannot perform deployment or administration actions."
+              : "Select the projects this person can read. Operators can also select admitted releases, retry, and cancel nonproduction deployments in these projects."}
       </FieldDescription>
       {projects.map((project) => (
         <Field

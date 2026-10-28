@@ -49,6 +49,11 @@ func (store *Store) RecordPullRequest(ctx context.Context, scope v1.Scope, deliv
 		}
 		return false, tx.Commit(ctx)
 	}
+	var previouslyClosed bool
+	previous := tx.QueryRow(ctx, `SELECT closed FROM pull_requests WHERE organization_id=$1 AND project_id=$2 AND number=$3 FOR UPDATE`, scope.OrganizationID, scope.ProjectID, update.Number).Scan(&previouslyClosed)
+	if previous != nil && !errors.Is(previous, pgx.ErrNoRows) {
+		return false, previous
+	}
 	result, err = tx.Exec(ctx, `INSERT INTO pull_requests VALUES ($1,$2,$3,$4,$5,$6,$7)
 ON CONFLICT (organization_id,project_id,number) DO UPDATE SET head_commit=EXCLUDED.head_commit,head_repository_id=EXCLUDED.head_repository_id,closed=EXCLUDED.closed,updated_at=EXCLUDED.updated_at
 WHERE EXCLUDED.updated_at>pull_requests.updated_at OR (EXCLUDED.updated_at=pull_requests.updated_at AND EXCLUDED.closed AND NOT pull_requests.closed)`, scope.OrganizationID, scope.ProjectID, update.Number, update.HeadCommit, update.HeadRepositoryID, update.Closed, update.UpdatedAt)
@@ -62,8 +67,8 @@ WHERE EXCLUDED.updated_at>pull_requests.updated_at OR (EXCLUDED.updated_at=pull_
 		if err := closePreviews(ctx, tx, scope, update.Number); err != nil {
 			return false, err
 		}
-	} else {
-		if _, err := tx.Exec(ctx, `UPDATE environments SET deleted=false WHERE organization_id=$1 AND project_id=$2 AND pull_request=$3 AND deleted`, scope.OrganizationID, scope.ProjectID, update.Number); err != nil {
+	} else if previouslyClosed {
+		if _, err := tx.Exec(ctx, `UPDATE environments SET deleted=false,expires_at=NULL,deletion_reason='' WHERE organization_id=$1 AND project_id=$2 AND pull_request=$3 AND deleted`, scope.OrganizationID, scope.ProjectID, update.Number); err != nil {
 			return false, err
 		}
 	}
@@ -96,21 +101,24 @@ func closePreviews(ctx context.Context, tx pgx.Tx, scope v1.Scope, number int64)
 		return err
 	}
 	for _, target := range targets {
-		if err := deleteSelection(ctx, tx, target.id, target.generation+1); err != nil {
+		if err := deleteSelection(ctx, tx, target.id, target.generation+1, "pull_request_closed"); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func deleteSelection(ctx context.Context, tx pgx.Tx, environment string, generation int64) error {
-	if _, err := tx.Exec(ctx, `UPDATE environments SET deleted=true,generation=$2 WHERE id=$1`, environment, generation); err != nil {
+func deleteSelection(ctx context.Context, tx pgx.Tx, environment string, generation int64, reason string) error {
+	if _, err := tx.Exec(ctx, `UPDATE environments SET deleted=true,generation=$2,deletion_reason=$3 WHERE id=$1`, environment, generation, reason); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE operations SET state='superseded',lease_token='',lease_until=NULL,updated_at=now() WHERE environment_id=$1 AND state NOT IN ('deleted','superseded')`, environment); err != nil {
 		return err
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO operations (id,environment_id,generation,kind,state) VALUES ($1,$2,$3,'delete','reconciling')`, newID("op"), environment, generation)
+	if _, err := tx.Exec(ctx, `INSERT INTO operations (id,environment_id,generation,kind,state) VALUES ($1,$2,$3,'delete','reconciling')`, newID("op"), environment, generation); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO audit_events(organization_id,project_id,actor,event,target,generation) SELECT organization_id,project_id,'system:preview-policy',$3,id,$2 FROM environments WHERE id=$1`, environment, generation, "preview."+reason)
 	return err
 }
 
@@ -130,7 +138,7 @@ func (store *Store) ExpirePreviews(ctx context.Context, organization string) err
 	if err != nil {
 		return err
 	}
-	if err := deleteSelection(ctx, tx, id, generation+1); err != nil {
+	if err := deleteSelection(ctx, tx, id, generation+1, "expired"); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

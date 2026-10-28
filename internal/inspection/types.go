@@ -23,10 +23,15 @@ type Project struct {
 
 // Environment reports one exact desired revision and the age of evidence for that revision.
 type Environment struct {
+	URL                   string            `json:"url,omitempty"`
+	PullRequestHead       string            `json:"pullRequestHead,omitempty"`
+	PullRequestClosed     bool              `json:"pullRequestClosed"`
 	ID                    string            `json:"id"`
 	ProjectID             string            `json:"projectId"`
 	Application           string            `json:"application"`
 	ClusterID             string            `json:"clusterId"`
+	Kind                  string            `json:"kind"`
+	DeletionReason        string            `json:"deletionReason,omitempty"`
 	PullRequest           int64             `json:"pullRequest"`
 	Generation            int64             `json:"generation"`
 	Deleted               bool              `json:"deleted"`

@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/lucas-ht/keldock/internal/access"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
@@ -42,12 +41,7 @@ func (api *API) submit(w http.ResponseWriter, request *http.Request) {
 		failure(w, postgres.ErrDenied)
 		return
 	}
-	environment := v1.EnvironmentID(principal.Scope, input.Definition.Name, input.Source.PullRequest)
-	hostname := "preview-" + strings.TrimPrefix(environment, "env-")[:12] + "." + api.Domain
-	if input.Source.PullRequest == 0 {
-		hostname = "staging-" + strings.TrimPrefix(environment, "env-")[:12] + "." + api.Domain
-	}
-	receipt, err := api.Store.Admit(request.Context(), principal.Scope, principal.Actor, request.Header.Get("Idempotency-Key"), hostname, input)
+	receipt, err := api.Store.AdmitToDomain(request.Context(), principal.Scope, principal.Actor, request.Header.Get("Idempotency-Key"), api.Domain, input)
 	if err != nil {
 		failure(w, err)
 		return
@@ -69,24 +63,6 @@ func (api *API) status(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
-}
-
-func (api *API) cancel(w http.ResponseWriter, request *http.Request) {
-	principal, err := api.Security.Mutation(request)
-	project, exists := api.Projects[request.PathValue("project")]
-	if err != nil {
-		failure(w, err)
-		return
-	}
-	if !exists || !principal.CanOperate(project.ProjectID) {
-		failure(w, postgres.ErrDenied)
-		return
-	}
-	if err := api.Store.Cancel(request.Context(), project.Scope, request.PathValue("operation"), "user:"+principal.User.ID); err != nil {
-		failure(w, err)
-		return
-	}
-	writeJSON(w, http.StatusAccepted, map[string]string{"state": "canceled", "detail": "Completed external effects are retained; this is not a rollback"})
 }
 
 func (api *API) desired(w http.ResponseWriter, request *http.Request) {

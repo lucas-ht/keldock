@@ -1,0 +1,1 @@
+CREATE INDEX operation_budget_expiry ON operation_budgets(organization_id,window_start);

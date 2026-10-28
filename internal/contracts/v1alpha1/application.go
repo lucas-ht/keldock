@@ -48,7 +48,8 @@ type Organization struct {
 // Project binds a repository and cluster placement to its owning organization.
 type Project struct {
 	Scope
-	Name         string `json:"name"`
-	RepositoryID int64  `json:"repositoryId"`
-	ClusterID    string `json:"clusterId"`
+	Name         string        `json:"name"`
+	RepositoryID int64         `json:"repositoryId"`
+	ClusterID    string        `json:"clusterId"`
+	Previews     PreviewPolicy `json:"previews"`
 }

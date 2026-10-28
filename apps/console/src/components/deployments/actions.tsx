@@ -28,9 +28,30 @@ export function DeploymentActions({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const key = useRef("");
+  const intent = useRef("");
+  const [target, setTarget] = useState<{
+    projectId: string;
+    operationId: string;
+    generation: number;
+  } | null>(null);
+  function begin(next: "retry" | "cancel") {
+    const identity = `${next}:${environment.operation.id}:${environment.generation}`;
+    if (identity !== intent.current) {
+      key.current = crypto.randomUUID();
+      intent.current = identity;
+    }
+    setTarget({
+      projectId: environment.projectId,
+      operationId: environment.operation.id,
+      generation: environment.generation,
+    });
+    setError(null);
+    setAction(next);
+  }
   const state = environment.operation.state;
   if (
     !permitted ||
+    environment.kind === "production" ||
     environment.deleted ||
     environment.operation.kind !== "deploy"
   )
@@ -44,26 +65,13 @@ export function DeploymentActions({
     <>
       <div className="flex flex-wrap gap-2">
         {retry && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setError(null);
-              setAction("retry");
-              key.current ||= crypto.randomUUID();
-            }}
-          >
+          <Button variant="outline" onClick={() => begin("retry")}>
             <RotateCcw data-icon="inline-start" />
             Retry release
           </Button>
         )}
         {cancel && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setError(null);
-              setAction("cancel");
-            }}
-          >
+          <Button variant="outline" onClick={() => begin("cancel")}>
             <Square data-icon="inline-start" />
             Cancel
           </Button>
@@ -96,22 +104,19 @@ export function DeploymentActions({
             <Button
               disabled={busy}
               onClick={async () => {
-                if (!action) return;
+                if (!action || !target) return;
                 setBusy(true);
                 setError(null);
                 try {
                   await mutate(
-                    `/v1/projects/${environment.projectId}/operations/${environment.operation.id}/${action}`,
-                    action === "retry"
-                      ? { generation: environment.generation }
-                      : undefined,
+                    `/v1/projects/${target.projectId}/operations/${target.operationId}/${action}`,
+                    { generation: target.generation },
                     "POST",
-                    action === "retry"
-                      ? { "Idempotency-Key": key.current }
-                      : {},
+                    { "Idempotency-Key": key.current },
                   );
                   setAction(null);
                   key.current = "";
+                  intent.current = "";
                   router.refresh();
                 } catch (error) {
                   setError((error as Error).message);

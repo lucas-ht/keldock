@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -25,6 +26,8 @@ var (
 	ErrConflict = errors.New("conflicting request")
 	ErrStale    = errors.New("stale desired revision")
 	ErrDenied   = errors.New("request outside authorized scope")
+	ErrQuota    = errors.New("preview capacity is reserved")
+	ErrLimited  = errors.New("operation rate limit")
 )
 
 // Store owns a bounded connection pool; callers must close it during shutdown.
@@ -110,7 +113,15 @@ func (store *Store) SeedProject(ctx context.Context, project v1.Project) error {
 	if !v1.ValidName(project.OrganizationID) || !v1.ValidName(project.ProjectID) || !v1.ValidName(project.ClusterID) || project.RepositoryID <= 0 {
 		return ErrDenied
 	}
-	_, err := store.pool.Exec(ctx, `INSERT INTO projects (organization_id,id,name,repository_id,cluster_id) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING`, project.OrganizationID, project.ProjectID, project.Name, project.RepositoryID, project.ClusterID)
+	policy, err := project.Previews.Normalize()
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(policy)
+	if err != nil {
+		return err
+	}
+	_, err = store.pool.Exec(ctx, `INSERT INTO projects (organization_id,id,name,repository_id,cluster_id) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING`, project.OrganizationID, project.ProjectID, project.Name, project.RepositoryID, project.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -120,5 +131,6 @@ func (store *Store) SeedProject(ctx context.Context, project v1.Project) error {
 	if err != nil || repository != project.RepositoryID || cluster != project.ClusterID {
 		return ErrConflict
 	}
-	return nil
+	_, err = store.pool.Exec(ctx, `UPDATE projects SET preview_policy=$3 WHERE organization_id=$1 AND id=$2`, project.OrganizationID, project.ProjectID, data)
+	return err
 }

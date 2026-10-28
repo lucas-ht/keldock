@@ -50,7 +50,7 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 		if _, exists := projects[item.ID]; exists {
 			return fmt.Errorf("duplicate configured project")
 		}
-		project := v1.Project{Scope: v1.Scope{OrganizationID: settings.Organization, ProjectID: item.ID}, Name: item.Name, RepositoryID: item.RepositoryID, ClusterID: settings.Cluster}
+		project := v1.Project{Scope: v1.Scope{OrganizationID: settings.Organization, ProjectID: item.ID}, Name: item.Name, RepositoryID: item.RepositoryID, ClusterID: settings.Cluster, Previews: item.Previews}
 		if err := store.SeedProject(ctx, project); err != nil {
 			return err
 		}

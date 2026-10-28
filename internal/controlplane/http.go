@@ -45,14 +45,16 @@ func (api *API) Handler() http.Handler {
 	if api.GitHubApp != nil {
 		(githubhttp.Service{Integration: api.GitHubApp, Security: api.Security}).Register(mux)
 	}
-	mux.Handle("/mcp", mcpserver.Handler(api.Security.MCP, api.inspector()))
+	mux.Handle("/mcp", mcpserver.Handler(api.Security.MCP, api.inspector(), api.operatorService()))
 	mux.HandleFunc("GET /v1/installation", api.installation)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /v1/releases", api.submit)
 	mux.HandleFunc("GET /v1/projects", api.projects)
+	mux.HandleFunc("GET /v1/projects/{project}/releases", api.releases)
 	mux.HandleFunc("GET /v1/projects/{project}/environments", api.environments)
+	mux.HandleFunc("POST /v1/projects/{project}/environments/{environment}/deployments", api.selectRelease)
 	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}", api.environment)
 	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}/diagnostics", api.diagnostics)
 	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}/timeline", api.timeline)
@@ -130,6 +132,12 @@ func problem(w http.ResponseWriter, status int, code, message string) {
 
 func failure(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, postgres.ErrLimited):
+		problem(w, http.StatusTooManyRequests, "rate_limited", "Accepted operation limit reached; retry later with the same request identity")
+	case errors.Is(err, access.ErrInvalid):
+		problem(w, http.StatusBadRequest, "invalid_request", "Check target identifiers, generation and request identity")
+	case errors.Is(err, postgres.ErrQuota):
+		problem(w, http.StatusConflict, "quota_exceeded", "Preview capacity is reserved; wait for cleanup or ask an operator to review the project limit")
 	case errors.Is(err, postgres.ErrDenied), errors.Is(err, admission.ErrDenied), errors.Is(err, access.ErrDenied):
 		problem(w, http.StatusForbidden, "denied", "Request outside authorized scope")
 	case errors.Is(err, postgres.ErrNotFound), errors.Is(err, access.ErrNotFound):

@@ -128,6 +128,16 @@ func Bearer(request *http.Request) string {
 	return strings.TrimPrefix(value, "Bearer ")
 }
 
+// OperationMutation accepts a CSRF-protected session or a separately scoped MCP bearer.
+// Cookie-bearing requests always retain browser CSRF checks, even with a bearer present.
+func (service *Service) OperationMutation(request *http.Request) (access.Principal, error) {
+	if service.sessionToken(request) != "" {
+		return service.Mutation(request)
+	}
+	principal, _, err := service.MCP.Authenticate(request.Context(), Bearer(request), service.MCP.Resource)
+	return principal, err
+}
+
 // Mutation rechecks the trusted origin, live session and session-bound anti-forgery proof.
 func (service *Service) Mutation(request *http.Request) (access.Principal, error) {
 	if request.Header.Get("Origin") != service.config.PublicURL || !access.ValidCSRF(service.sessionToken(request), request.Header.Get("X-Keldock-CSRF")) {

@@ -74,6 +74,7 @@ export function Consent({
       <FieldGroup>
         <ProjectGrants
           readOnly
+          operationAccess={canOperate}
           projects={projects}
           selected={selected}
           onChange={setSelected}
