@@ -24,9 +24,10 @@ type Profile struct {
 // Policy delegates bounded allocation into one cluster for one project.
 type Policy struct {
 	v1.Scope
-	ClusterID string             `json:"clusterId"`
-	Profiles  map[string]Profile `json:"profiles"`
-	Limit     int                `json:"limit"`
+	ClusterID string                 `json:"clusterId"`
+	Profiles  map[string]Profile     `json:"profiles"`
+	Limit     int                    `json:"limit"`
+	Backups   map[string]Destination `json:"backups,omitempty"`
 }
 
 // Validate rejects absent or unbounded operator delegation.
@@ -40,34 +41,45 @@ func (p Policy) Validate() error {
 			return fmt.Errorf("invalid database profile")
 		}
 	}
+	if len(p.Backups) > 32 {
+		return fmt.Errorf("backup delegation limit exceeded")
+	}
+	for id, destination := range p.Backups {
+		if !v1.ValidName(id) || destination.validate() != nil {
+			return fmt.Errorf("invalid supplied backup delegation")
+		}
+	}
 	return nil
 }
 
 // Allocation retains data and its namespace independently of an environment's lifecycle.
 type Allocation struct {
 	v1.Scope
-	ID            string    `json:"id"`
-	EnvironmentID string    `json:"environmentId"`
-	Alias         string    `json:"alias"`
-	ClusterID     string    `json:"clusterId"`
-	Namespace     string    `json:"namespace"`
-	Profile       string    `json:"profile"`
-	Configuration Profile   `json:"configuration"`
-	Generation    int64     `json:"generation"`
-	Action        string    `json:"action"`
-	Components    []string  `json:"components"`
-	Observation   *Evidence `json:"observation,omitempty"`
+	ID            string        `json:"id"`
+	EnvironmentID string        `json:"environmentId"`
+	Alias         string        `json:"alias"`
+	ClusterID     string        `json:"clusterId"`
+	Namespace     string        `json:"namespace"`
+	Profile       string        `json:"profile"`
+	Configuration Profile       `json:"configuration"`
+	Generation    int64         `json:"generation"`
+	SourceUID     string        `json:"sourceUid,omitempty"`
+	Backup        *BackupIntent `json:"backup,omitempty"`
+	Action        string        `json:"action"`
+	Components    []string      `json:"components"`
+	Observation   *Evidence     `json:"observation,omitempty"`
 }
 
 // Evidence contains revision-aware health without credentials or SQL contents.
 type Evidence struct {
 	v1.Scope
-	ID         string    `json:"id"`
-	Generation int64     `json:"generation"`
-	State      string    `json:"state"`
-	Reason     string    `json:"reason"`
-	UID        string    `json:"uid,omitempty"`
-	ObservedAt time.Time `json:"observedAt"`
+	ID         string          `json:"id"`
+	Generation int64           `json:"generation"`
+	State      string          `json:"state"`
+	Reason     string          `json:"reason"`
+	UID        string          `json:"uid,omitempty"`
+	ObservedAt time.Time       `json:"observedAt"`
+	Backup     *BackupEvidence `json:"backup,omitempty"`
 }
 
 // ID is deterministic within an immutable environment and resource alias.

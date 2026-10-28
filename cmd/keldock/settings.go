@@ -47,6 +47,7 @@ type controlSettings struct {
 }
 
 type agentSettings struct {
+	HealthFile              string `json:"healthFile,omitempty"`
 	APIURL                  string `json:"apiUrl"`
 	CredentialFile          string `json:"credentialFile"`
 	RegistryCredentialsFile string `json:"registryCredentialsFile,omitempty"`

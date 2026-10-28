@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lucas-ht/keldock/internal/database"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,7 +19,30 @@ func (d *Driver) Reconcile(ctx context.Context, p database.Policy, a database.Al
 		e.Reason = "OperatorDelegationDenied"
 		return e
 	}
-	ns := map[string]any{"apiVersion": "v1", "kind": "Namespace", "metadata": map[string]any{"name": a.Namespace, "labels": map[string]string{"keldock.io/retained": "postgresql", "pod-security.kubernetes.io/enforce": "restricted", "pod-security.kubernetes.io/enforce-version": "v1.35"}}}
+	if existing, err := d.Client.Resource(resources["Namespace"]).Get(ctx, a.Namespace, metav1.GetOptions{}); err == nil {
+		remembered := existing.GetAnnotations()["keldock.io/source-uid"]
+		if a.SourceUID != "" && remembered != "" && a.SourceUID != remembered {
+			e.State = "failed"
+			e.Reason = "DatabaseIdentityChanged"
+			return e
+		}
+		if a.SourceUID == "" {
+			a.SourceUID = remembered
+		}
+	} else if !apierrors.IsNotFound(err) {
+		e.State = "failed"
+		e.Reason = "DatabaseInventoryUnavailable"
+		return e
+	}
+	if a.SourceUID != "" {
+		current, err := d.Client.Resource(resources["Cluster"]).Namespace(a.Namespace).Get(ctx, "database", metav1.GetOptions{})
+		if err != nil || string(current.GetUID()) != a.SourceUID {
+			e.State = "failed"
+			e.Reason = "DatabaseIdentityChanged_RestoreRequired"
+			return e
+		}
+	}
+	ns := databaseNamespace(a)
 	for _, object := range []map[string]any{ns, network(a), cluster(a)} {
 		actual, err := d.apply(ctx, a, object)
 		if err != nil {
@@ -30,6 +54,14 @@ func (d *Driver) Reconcile(ctx context.Context, p database.Policy, a database.Al
 			continue
 		}
 		e.UID = string(actual.GetUID())
+		if a.SourceUID == "" && e.UID != "" {
+			a.SourceUID = e.UID
+			if _, err := d.apply(ctx, a, databaseNamespace(a)); err != nil {
+				e.State = "failed"
+				e.Reason = "DatabaseIdentityCheckpointFailed"
+				return e
+			}
+		}
 		conditions, _, _ := unstructured.NestedSlice(actual.Object, "status", "conditions")
 		for _, raw := range conditions {
 			condition, ok := raw.(map[string]any)
@@ -43,6 +75,9 @@ func (d *Driver) Reconcile(ctx context.Context, p database.Policy, a database.Al
 		// Retention revokes new logins and ingress; existing sessions end as consumers roll.
 		e.State = "retained"
 		e.Reason = "DataRetainedConsumersDisconnected"
+	}
+	if a.Backup != nil {
+		e.Backup = d.backup(ctx, p, a)
 	}
 	return e
 }

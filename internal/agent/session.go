@@ -11,8 +11,9 @@ import (
 // SessionLoop maintains one exclusive outbound lease and cancels work when it is lost.
 // Workload and cloud protocols share transport mechanics, never credential authority.
 type SessionLoop struct {
-	Client *Client
-	Step   func(context.Context) error
+	Client     *Client
+	Step       func(context.Context) error
+	HealthFile string
 }
 
 // Run retains workloads on disconnection and cancels in-flight work when the lease is lost.
@@ -25,6 +26,9 @@ func (loop SessionLoop) Run(ctx context.Context) error {
 		}
 	}()
 	for ctx.Err() == nil {
+		if err := MarkHealth(loop.HealthFile); err != nil {
+			return err
+		}
 		err := loop.connected(ctx)
 		if ctx.Err() != nil {
 			return nil
@@ -52,6 +56,9 @@ func (loop SessionLoop) connected(parent context.Context) (result error) {
 	if err := loop.Client.Heartbeat(ctx); err != nil {
 		return err
 	}
+	if err := MarkHealth(loop.HealthFile); err != nil {
+		return err
+	}
 	heartbeat := make(chan error, 1)
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
@@ -63,6 +70,11 @@ func (loop SessionLoop) connected(parent context.Context) (result error) {
 				return
 			case <-ticker.C:
 				if err := loop.Client.Heartbeat(ctx); err != nil {
+					heartbeat <- err
+					cancel()
+					return
+				}
+				if err := MarkHealth(loop.HealthFile); err != nil {
 					heartbeat <- err
 					cancel()
 					return

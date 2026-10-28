@@ -90,6 +90,8 @@ func resolveDatabases(ctx context.Context, tx pgx.Tx, scope v1.Scope, release st
 				return ErrConflict
 			}
 			allocation.Generation = existing.Generation
+			allocation.SourceUID = existing.SourceUID
+			allocation.Backup = existing.Backup
 			if !slices.Equal(existing.Components, components) {
 				allocation.Generation++
 			}

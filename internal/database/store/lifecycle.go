@@ -17,9 +17,10 @@ import (
 
 // Command selects a reviewable lifecycle transition against one exact generation.
 type Command struct {
-	ID         string `json:"id"`
-	Generation int64  `json:"generation"`
-	Action     string `json:"action"`
+	ID            string `json:"id"`
+	Generation    int64  `json:"generation"`
+	Action        string `json:"action"`
+	DestinationID string `json:"destinationId,omitempty"`
 }
 
 // Mutate retains/disconnects or explicitly reconnects an allocation; it never deletes data.
@@ -29,7 +30,7 @@ func (s *Store) Mutate(ctx context.Context, p access.Principal, project, key str
 	if !ok || p.Kind != "session" || !p.CanOperate(project) || p.User.OrganizationID != policy.OrganizationID {
 		return item, access.ErrDenied
 	}
-	if len(key) < 16 || len(key) > 128 || !v1.ValidName(command.ID) || command.Generation < 1 || !slices.Contains([]string{"retain", "reconnect"}, command.Action) {
+	if len(key) < 16 || len(key) > 128 || !v1.ValidName(command.ID) || command.Generation < 1 || !slices.Contains([]string{"retain", "reconnect", "backup", "restore", "pause-backup"}, command.Action) {
 		return item, access.ErrInvalid
 	}
 	tx, err := s.Pool.Begin(ctx)
@@ -49,10 +50,10 @@ func (s *Store) Mutate(ctx context.Context, p access.Principal, project, key str
 	if _, err := tx.Exec(ctx, `SELECT e.id FROM environments e JOIN database_allocations a ON a.environment_id=e.id WHERE a.organization_id=$1 AND a.project_id=$2 AND a.id=$3 FOR UPDATE OF e`, policy.OrganizationID, project, command.ID); err != nil {
 		return item, err
 	}
-	var envData []byte
+	var envData, observation []byte
 	var release, state string
 	var deleted bool
-	err = tx.QueryRow(ctx, `SELECT a.intent,d.selection,d.release_id,o.state,e.deleted FROM database_allocations a JOIN environments e ON e.id=a.environment_id JOIN deployments d ON d.environment_id=e.id AND d.generation=e.generation JOIN operations o ON o.environment_id=e.id AND o.generation=e.generation WHERE a.organization_id=$1 AND a.project_id=$2 AND a.id=$3 FOR UPDATE OF a,e,o`, policy.OrganizationID, project, command.ID).Scan(&data, &envData, &release, &state, &deleted)
+	err = tx.QueryRow(ctx, `SELECT a.intent,a.observation,d.selection,d.release_id,o.state,e.deleted FROM database_allocations a JOIN environments e ON e.id=a.environment_id JOIN deployments d ON d.environment_id=e.id AND d.generation=e.generation JOIN operations o ON o.environment_id=e.id AND o.generation=e.generation WHERE a.organization_id=$1 AND a.project_id=$2 AND a.id=$3 FOR UPDATE OF a,e,o`, policy.OrganizationID, project, command.ID).Scan(&data, &observation, &envData, &release, &state, &deleted)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return item, postgres.ErrNotFound
 	}
@@ -84,8 +85,16 @@ func (s *Store) Mutate(ctx context.Context, p access.Principal, project, key str
 	if err := json.Unmarshal(data, &item); err != nil {
 		return item, err
 	}
+	if len(observation) > 0 {
+		if err := json.Unmarshal(observation, &item.Observation); err != nil {
+			return item, err
+		}
+	}
 	if item.Generation != command.Generation {
 		return item, postgres.ErrStale
+	}
+	if command.Action == "backup" || command.Action == "restore" || command.Action == "pause-backup" {
+		return s.backupCommand(ctx, tx, p, policy, item, key, hash, command)
 	}
 	var placement v1.Placement
 	if err := json.Unmarshal(envData, &placement); err != nil {

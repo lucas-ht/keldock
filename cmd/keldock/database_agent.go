@@ -15,6 +15,7 @@ func databaseAgentCommand(ctx context.Context, args []string) error {
 	flags := flag.NewFlagSet("database-agent", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	config := flags.String("config", "", "owner-only database agent configuration")
+	waitEnrollment := flags.Bool("wait-for-enrollment", false, "wait for explicit database provisioner enrollment")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -42,9 +43,14 @@ func databaseAgentCommand(ctx context.Context, args []string) error {
 	if err := driver.Inspect(ctx); err != nil {
 		return err
 	}
+	if *waitEnrollment {
+		if err := waitForEnrollment(ctx, settings.CredentialFile, settings.HealthFile); err != nil {
+			return err
+		}
+	}
 	client, err := agent.DatabaseClientFromFile(settings.APIURL, settings.CredentialFile, settings.Development)
 	if err != nil {
 		return err
 	}
-	return (databaseagent.Agent{Client: client, Driver: driver, Policies: policies}).Run(ctx)
+	return (databaseagent.Agent{Client: client, Driver: driver, Policies: policies, HealthFile: settings.HealthFile}).Run(ctx)
 }

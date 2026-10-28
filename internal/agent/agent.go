@@ -20,8 +20,9 @@ type Driver interface {
 
 // Agent serializes one cluster's approved projections through an outbound connection.
 type Agent struct {
-	Client *Client
-	Driver Driver
+	Client     *Client
+	Driver     Driver
+	HealthFile string
 }
 
 // Step revalidates selections before mutation and reports outcomes without a CI session.
@@ -81,5 +82,5 @@ func (agent Agent) project(ctx context.Context, desired v1.ProjectedDeployment) 
 
 // Run serializes workload projections under the enrolled registrar lease.
 func (agent Agent) Run(ctx context.Context) error {
-	return (SessionLoop{Client: agent.Client, Step: agent.Step}).Run(ctx)
+	return (SessionLoop{Client: agent.Client, Step: agent.Step, HealthFile: agent.HealthFile}).Run(ctx)
 }

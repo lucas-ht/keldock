@@ -24,6 +24,10 @@ func (r *Registrar) projectDatabases(ctx context.Context, desired v1.ProjectedDe
 		if err != nil {
 			return fmt.Errorf("database allocation is unavailable")
 		}
+		namespace, err := r.resource("Namespace", "").Get(ctx, b.Namespace, metav1.GetOptions{})
+		if err != nil || namespace.GetAnnotations()["keldock.io/source-uid"] == "" || namespace.GetAnnotations()["keldock.io/source-uid"] != string(cluster.GetUID()) {
+			return fmt.Errorf("database identity requires operator recovery")
+		}
 		for key, value := range map[string]string{"app.kubernetes.io/managed-by": "keldock", "keldock.io/organization": desired.Operation.OrganizationID, "keldock.io/project": desired.Operation.ProjectID, "keldock.io/environment": s.EnvironmentID, "keldock.io/allocation": b.ResourceID} {
 			if cluster.GetLabels()[key] != value {
 				return fmt.Errorf("database allocation owner mismatch")

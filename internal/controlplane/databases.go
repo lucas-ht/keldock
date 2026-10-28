@@ -34,7 +34,12 @@ func (api *API) databases(w http.ResponseWriter, r *http.Request) {
 		failure(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items, "configuration": api.Databases.Policies[r.PathValue("project")], "agent": identity})
+	policy := api.Databases.Policies[r.PathValue("project")]
+	destinations := []map[string]string{}
+	for id, destination := range policy.Backups {
+		destinations = append(destinations, map[string]string{"id": id, "allocationId": destination.AllocationID, "description": destination.Description})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items, "configuration": map[string]any{"profiles": policy.Profiles, "limit": policy.Limit, "destinations": destinations}, "agent": identity})
 }
 
 func (api *API) databaseMutate(w http.ResponseWriter, r *http.Request) {

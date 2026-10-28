@@ -12,9 +12,10 @@ import (
 
 // Agent serializes database effects under an independent server lease and local policy.
 type Agent struct {
-	Client   *agent.Client
-	Driver   *Driver
-	Policies map[string]database.Policy
+	Client     *agent.Client
+	Driver     *Driver
+	Policies   map[string]database.Policy
+	HealthFile string
 }
 
 // Step revalidates every allocation immediately before applying its effects.
@@ -59,5 +60,5 @@ func (a Agent) Step(ctx context.Context) error {
 
 // Run uses the same bounded transport loop while keeping all authority separate.
 func (a Agent) Run(ctx context.Context) error {
-	return (agent.SessionLoop{Client: a.Client, Step: a.Step}).Run(ctx)
+	return (agent.SessionLoop{Client: a.Client, Step: a.Step, HealthFile: a.HealthFile}).Run(ctx)
 }

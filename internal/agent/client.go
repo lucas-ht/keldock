@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lucas-ht/keldock/internal/buildinfo"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 )
 
@@ -80,7 +81,7 @@ func (client *Client) requestLocked(ctx context.Context, method, path string, in
 	request.Header.Set("Authorization", "Bearer "+client.token)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Keldock-Agent-Session", client.session)
-	request.Header.Set("X-Keldock-Agent-Version", "0.2.0-dev")
+	request.Header.Set("X-Keldock-Agent-Version", buildinfo.Version)
 	response, err := client.http.Do(request)
 	if err != nil {
 		return fmt.Errorf("control-plane connection unavailable")
