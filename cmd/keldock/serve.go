@@ -13,6 +13,8 @@ import (
 	"github.com/lucas-ht/keldock/internal/access/mcpidentity"
 	"github.com/lucas-ht/keldock/internal/admission"
 	"github.com/lucas-ht/keldock/internal/artifacts"
+	"github.com/lucas-ht/keldock/internal/cloud"
+	cloudstore "github.com/lucas-ht/keldock/internal/cloud/store"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane"
 	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
@@ -108,6 +110,24 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 	}
 	api := &controlplane.API{Store: store, GitHub: verifier, Organization: settings.Organization, Cluster: settings.Cluster, Projects: projects, RepositoryOwners: owners,
 		Security: security, Development: settings.Development, WebhookSecret: []byte(webhookSecret), Domain: settings.Domain}
+	if len(settings.Cloud) > 0 {
+		policies := map[string]cloud.Policy{}
+		for _, policy := range settings.Cloud {
+			project, ok := projects[policy.ProjectID]
+			if !ok || policy.Scope != project.Scope || policy.ClusterID != settings.Cluster || policy.Validate() != nil || policies[policy.ProjectID].ProjectID != "" {
+				return fmt.Errorf("invalid or duplicate operator cloud policy")
+			}
+			policies[policy.ProjectID] = policy
+		}
+		security.Cloud, err = clusteridentity.NewCloudRepository(store.Pool(), users, settings.Cluster)
+		if err != nil {
+			return err
+		}
+		if err := security.Cloud.Seed(ctx, settings.Cluster); err != nil {
+			return err
+		}
+		api.Cloud = &cloudstore.Store{Pool: store.Pool(), Users: users, Policies: policies}
+	}
 	if settings.GitHubCredentialsFile != "" {
 		api.GitHubApp, err = githubapp.New(store, users, githubapp.Config{CredentialsFile: settings.GitHubCredentialsFile, PublicURL: settings.PublicURL, Development: settings.Development, Projects: projects, RepositoryOwners: owners})
 		if err != nil {

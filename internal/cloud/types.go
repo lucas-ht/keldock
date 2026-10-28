@@ -114,12 +114,13 @@ type DomainRequest struct {
 // DomainClaim keeps DNS ownership, DNS convergence and certificate health distinct.
 type DomainClaim struct {
 	v1.Scope
-	ID                string        `json:"id"`
-	Generation        int64         `json:"generation"`
-	Request           DomainRequest `json:"request"`
-	OwnershipVerified bool          `json:"ownershipVerified"`
-	DNSReady          bool          `json:"dnsReady"`
-	CertificateReady  bool          `json:"certificateReady"`
-	State             string        `json:"state"`
-	ObservedAt        *time.Time    `json:"observedAt,omitempty"`
+	ID                   string        `json:"id"`
+	Generation           int64         `json:"generation"`
+	ConnectionGeneration int64         `json:"connectionGeneration"`
+	Request              DomainRequest `json:"request"`
+	OwnershipVerified    bool          `json:"ownershipVerified"`
+	DNSReady             bool          `json:"dnsReady"`
+	CertificateReady     bool          `json:"certificateReady"`
+	State                string        `json:"state"`
+	ObservedAt           *time.Time    `json:"observedAt,omitempty"`
 }

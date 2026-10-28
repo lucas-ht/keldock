@@ -25,6 +25,7 @@ func identityCommand(ctx context.Context, args []string) error {
 	passwordFile := flags.String("password-file", "", "owner-only recovery password file")
 	tokenFile := flags.String("token-file", "", "one-time enrollment token file")
 	cluster := flags.String("cluster", "", "configured cluster identifier")
+	cloud := flags.Bool("cloud", false, "enroll the separate optional cloud agent")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -37,7 +38,11 @@ func identityCommand(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := agent.Enroll(ctx, settings.APIURL, *cluster, token, settings.CredentialFile, settings.Development); err != nil {
+		enroll := agent.Enroll
+		if *cloud {
+			enroll = agent.EnrollCloud
+		}
+		if err := enroll(ctx, settings.APIURL, *cluster, token, settings.CredentialFile, settings.Development); err != nil {
 			return err
 		}
 		fmt.Println("Agent enrolled; credential saved to", settings.CredentialFile)

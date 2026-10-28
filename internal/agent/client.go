@@ -32,6 +32,7 @@ type Client struct {
 	base        string
 	token       string
 	http        *http.Client
+	cloud       bool
 }
 
 // NewClient requires HTTPS, with an explicit loopback HTTP exception for development.
@@ -57,6 +58,9 @@ func (client *Client) request(ctx context.Context, method, path string, input, o
 }
 
 func (client *Client) requestLocked(ctx context.Context, method, path string, input, output any) error {
+	if client.cloud && strings.HasPrefix(path, "/v1/agent/") {
+		path = "/v1/cloud/agent/" + strings.TrimPrefix(path, "/v1/agent/")
+	}
 	var body []byte
 	var err error
 	if input != nil {

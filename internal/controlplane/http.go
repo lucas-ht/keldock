@@ -9,6 +9,7 @@ import (
 
 	"github.com/lucas-ht/keldock/internal/access"
 	"github.com/lucas-ht/keldock/internal/admission"
+	cloudstore "github.com/lucas-ht/keldock/internal/cloud/store"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 	"github.com/lucas-ht/keldock/internal/controlplane/authentication"
 	githubhttp "github.com/lucas-ht/keldock/internal/controlplane/github"
@@ -31,6 +32,7 @@ type API struct {
 	Development      bool
 	Notice           string
 	Domain           string
+	Cloud            *cloudstore.Store
 }
 
 // Handler connects CI, status, webhook and outbound-agent routes to the same stored authority.
@@ -42,6 +44,7 @@ func (api *API) Handler() http.Handler {
 	}
 	mux := http.NewServeMux()
 	api.Security.Register(mux)
+	api.registerCloud(mux)
 	if api.GitHubApp != nil {
 		(githubhttp.Service{Integration: api.GitHubApp, Security: api.Security}).Register(mux)
 	}

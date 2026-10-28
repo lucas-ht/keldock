@@ -54,7 +54,7 @@ tasks:
     deps: [local:up]
     cmds:
       - node tooling/local/build-fixture.mjs
-      - go test -race -tags integration -timeout=15m -count=1 -v ./test/runtime/... ./test/access/... ./test/github/...
+      - go test -race -tags integration -timeout=15m -count=1 -v ./test/runtime/... ./test/access/... ./test/github/... ./test/cloud/...
 
   local:console:api:
     desc: Run synthetic console data and a real API/worker/agent in disposable keldock-m1

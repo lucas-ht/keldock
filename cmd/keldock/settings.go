@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lucas-ht/keldock/internal/admission"
+	"github.com/lucas-ht/keldock/internal/cloud"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 )
 
@@ -40,6 +41,7 @@ type controlSettings struct {
 	GitHubCredentialsFile string               `json:"githubCredentialsFile,omitempty"`
 	Development           bool                 `json:"development"`
 	Projects              []repositorySettings `json:"projects"`
+	Cloud                 []cloud.Policy       `json:"cloud,omitempty"`
 }
 
 type agentSettings struct {

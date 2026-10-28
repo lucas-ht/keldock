@@ -53,12 +53,14 @@ type Policy struct {
 	Regions     []string                   `json:"regions"`
 	Identities  map[string]IdentityProfile `json:"identities"`
 	Profiles    map[string]Profile         `json:"profiles"`
+	Databases   map[string]DatabaseTarget  `json:"databases,omitempty"`
+	EgressCIDRs []string                   `json:"egressCidrs,omitempty"`
 	Development bool                       `json:"development"`
 }
 
 // Validate checks authority boundaries before enabling this optional profile.
 func (policy Policy) Validate() error {
-	if !v1.ValidName(policy.OrganizationID) || !v1.ValidName(policy.ProjectID) || !v1.ValidName(policy.ClusterID) || len(policy.Accounts) == 0 || len(policy.Regions) == 0 || len(policy.Identities) == 0 || len(policy.Profiles) == 0 || len(policy.Identities) > 16 || len(policy.Profiles) > 16 {
+	if !v1.ValidName(policy.OrganizationID) || !v1.ValidName(policy.ProjectID) || !v1.ValidName(policy.ClusterID) || len(policy.Accounts) == 0 || len(policy.Accounts) > 16 || len(policy.Regions) == 0 || len(policy.Regions) > 16 || len(policy.Identities) == 0 || len(policy.Profiles) == 0 || len(policy.Identities) > 16 || len(policy.Profiles) > 16 {
 		return fmt.Errorf("cloud policy requires bounded ownership, accounts, regions, identities and profiles")
 	}
 	for _, account := range policy.Accounts {
@@ -69,6 +71,19 @@ func (policy Policy) Validate() error {
 	for _, region := range policy.Regions {
 		if !validRegion(region) {
 			return fmt.Errorf("unsupported AWS region")
+		}
+	}
+	if len(policy.Databases) > 16 || len(policy.EgressCIDRs) > 128 {
+		return fmt.Errorf("cloud database and network grants must be bounded")
+	}
+	for name, database := range policy.Databases {
+		if !v1.ValidName(name) || !v1.ValidName(database.Namespace) || !v1.ValidName(database.Name) || len(database.UID) < 8 || len(database.UID) > 64 {
+			return fmt.Errorf("backup source requires an exact operator-approved database identity")
+		}
+	}
+	for _, cidr := range policy.EgressCIDRs {
+		if !publicCIDR(cidr) {
+			return fmt.Errorf("AWS data egress requires explicit public IPv4 CIDRs")
 		}
 	}
 	for name, identity := range policy.Identities {
@@ -112,6 +127,19 @@ func (policy Policy) Validate() error {
 		}
 	}
 	return nil
+}
+
+func publicCIDR(cidr string) bool {
+	prefix, err := netip.ParsePrefix(cidr)
+	if err != nil || !prefix.Addr().Is4() || prefix.Bits() < 8 || prefix.Masked() != prefix {
+		return false
+	}
+	for _, raw := range []string{"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.168.0.0/16", "198.18.0.0/15", "224.0.0.0/3"} {
+		if prefix.Overlaps(netip.MustParsePrefix(raw)) {
+			return false
+		}
+	}
+	return true
 }
 
 func validRegion(value string) bool {
