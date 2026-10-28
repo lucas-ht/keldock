@@ -12,12 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Status } from "@/components/shared/status";
 import { ComponentStrip } from "@/components/deployments/components";
+import { ReleaseSelection } from "@/components/deployments/selection";
 import { DeploymentActions } from "@/components/deployments/actions";
 import { Refresh } from "@/components/layout/refresh";
 import { EmptyState } from "@/components/shared/feedback";
 
 const eventNames: Record<string, string> = {
   "release.admitted": "Release admitted",
+  "release.selected": "Admitted release selected",
+  "preview.pull_request_closed": "Preview closure requested",
   "operation.retried": "Release retried",
   "operation.canceled": "Operation canceled",
   "preview.deleted": "Preview deletion requested",
@@ -66,6 +69,10 @@ export default async function EnvironmentPage({
             environment={environment}
             permitted={canOperate(session.user.role)}
           />
+          <ReleaseSelection
+            environment={environment}
+            permitted={canOperate(session.user.role)}
+          />
           <Refresh automatic />
         </div>
       </div>
@@ -101,6 +108,30 @@ export default async function EnvironmentPage({
               {environment.hostname || "No endpoint selected"}
             </dd>
           </div>
+          {environment.pullRequest > 0 && (
+            <>
+              <div>
+                <dt className="text-xs text-muted-foreground">
+                  Current PR head
+                </dt>
+                <dd className="mt-2 break-all font-mono text-xs">
+                  {environment.pullRequestHead || "Not observed"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">
+                  Preview expiry
+                </dt>
+                <dd className="mt-2">
+                  {environment.expiresAt
+                    ? date(environment.expiresAt)
+                    : "No active lifetime"}
+                  {environment.deletionReason &&
+                    ` · ${environment.deletionReason.replaceAll("_", " ")}`}
+                </dd>
+              </div>
+            </>
+          )}
           <div>
             <dt className="text-xs text-muted-foreground">
               Last operation update
