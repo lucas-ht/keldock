@@ -1,6 +1,7 @@
 package controlplane
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/lucas-ht/keldock/internal/access"
@@ -31,7 +32,17 @@ func (api *API) cloudInventory(w http.ResponseWriter, r *http.Request) {
 		failure(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	catalog, err := api.Cloud.Catalog(principal, r.PathValue("project"))
+	if err != nil {
+		failure(w, err)
+		return
+	}
+	cloudAgent, err := api.Security.Cloud.Information(r.Context())
+	if err != nil {
+		failure(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items, "configuration": catalog, "agent": cloudAgent})
 }
 
 func (api *API) cloudIntent(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +81,10 @@ func (api *API) cloudMutate(w http.ResponseWriter, r *http.Request) {
 	}
 	receipt, err := api.Cloud.Mutate(r.Context(), principal, r.PathValue("project"), r.Header.Get("Idempotency-Key"), command)
 	if err != nil {
+		if errors.Is(err, postgres.ErrQuota) {
+			problem(w, http.StatusConflict, "quota_exceeded", "Approved cloud resource capacity is reserved; disconnect unused resources or ask the installation operator to review the limit")
+			return
+		}
 		failure(w, err)
 		return
 	}

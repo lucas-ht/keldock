@@ -54,7 +54,7 @@ func (service *Service) environments(ctx context.Context, scope v1.Scope, after,
 		slices.Sort(names)
 		for _, name := range names {
 			component := release.Definition.Components[name]
-			item.Components = append(item.Components, Component{Name: name, Kind: component.Kind, Image: item.Images[name], DependsOn: component.DependsOn})
+			item.Components = append(item.Components, Component{Name: name, Kind: component.Kind, Image: item.Images[name], DependsOn: component.DependsOn, Routed: component.Route})
 		}
 		if item.ReleaseID != "" {
 			item.Source = &release.Source

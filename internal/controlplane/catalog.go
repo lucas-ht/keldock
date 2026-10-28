@@ -86,10 +86,19 @@ func (api *API) timeline(w http.ResponseWriter, request *http.Request) {
 }
 
 func (api *API) installation(w http.ResponseWriter, request *http.Request) {
-	if _, ok := api.reader(w, request); !ok {
+	principal, ok := api.reader(w, request)
+	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"organizationId": api.Organization, "clusterId": api.Cluster, "development": api.Development, "notice": api.Notice})
+	cloudProjects := []string{}
+	if api.Cloud != nil {
+		for id := range api.Cloud.Policies {
+			if principal.CanRead(id) {
+				cloudProjects = append(cloudProjects, id)
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"organizationId": api.Organization, "clusterId": api.Cluster, "development": api.Development, "notice": api.Notice, "cloudProjects": cloudProjects})
 }
 
 func (api *API) releases(w http.ResponseWriter, r *http.Request) {

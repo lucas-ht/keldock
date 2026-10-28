@@ -5,10 +5,8 @@ export default async function ConsoleLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, installation] = await Promise.all([
-    requireSession(),
-    api<{ notice: string }>("/v1/installation"),
-  ]);
+  const session = await requireSession();
+  const installation = await api<{ notice: string }>("/v1/installation");
   return (
     <Shell user={session.user} notice={installation.notice}>
       {children}

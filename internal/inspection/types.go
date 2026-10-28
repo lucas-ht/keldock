@@ -53,6 +53,7 @@ type Component struct {
 	Kind      string   `json:"kind"`
 	Image     string   `json:"image"`
 	DependsOn []string `json:"dependsOn"`
+	Routed    bool     `json:"routed"`
 }
 
 // Status retains the original CI receipt response shape with redacted bounded errors.

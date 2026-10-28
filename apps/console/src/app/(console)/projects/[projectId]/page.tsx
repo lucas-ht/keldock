@@ -3,7 +3,7 @@ import { api } from "@/lib/server-api";
 import type { Environment, Page, Project } from "@/lib/contracts";
 import { Overview } from "@/components/deployments/overview";
 import { Refresh } from "@/components/layout/refresh";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 export default async function ProjectPage({
   params,
   searchParams,
@@ -13,11 +13,12 @@ export default async function ProjectPage({
 }) {
   const { projectId } = await params;
   const { after } = await searchParams;
-  const [projects, page] = await Promise.all([
+  const [projects, page, installation] = await Promise.all([
     api<Page<Project>>("/v1/projects"),
     api<Page<Environment>>(
       `/v1/projects/${encodeURIComponent(projectId)}/environments?after=${encodeURIComponent(after ?? "")}`,
     ),
+    api<{ cloudProjects?: string[] }>("/v1/installation"),
   ]);
   const project = projects.items.find((item) => item.projectId === projectId);
   return (
@@ -30,7 +31,17 @@ export default async function ProjectPage({
             {project?.clusterId ?? "the assigned cluster"}.
           </p>
         </div>
-        <Refresh automatic />
+        <div className="flex flex-wrap items-center gap-2">
+          {installation.cloudProjects?.includes(projectId) && (
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href={`/projects/${projectId}/resources`}
+            >
+              Cloud resources
+            </Link>
+          )}
+          <Refresh automatic />
+        </div>
       </div>
       <Overview
         environments={page.items}

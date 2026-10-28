@@ -90,6 +90,7 @@ export type Environment = {
     kind: string;
     image: string;
     dependsOn: string[] | null;
+    routed?: boolean;
   }[];
   observation: {
     state: string;

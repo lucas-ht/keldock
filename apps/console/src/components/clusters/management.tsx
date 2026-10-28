@@ -22,7 +22,14 @@ type Enrollment = {
   apiUrl: string;
   enrollment: { clusterId: string; token: string; expiresAt: string };
 };
-export function ClusterManagement({ cluster }: { cluster: Cluster }) {
+export function ClusterManagement({
+  cluster,
+  cloud = false,
+}: {
+  cluster: Cluster;
+  cloud?: boolean;
+}) {
+  const root = cloud ? "/v1/cloud" : "/v1";
   const router = useRouter();
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null),
     [error, setError] = useState<string | null>(null);
@@ -61,13 +68,16 @@ export function ClusterManagement({ cluster }: { cluster: Cluster }) {
             run:
           </p>
           <pre className="secret-output">
-            keldock enroll --config agent.json --cluster {cluster.id}{" "}
-            --token-file enrollment.token
+            keldock enroll {cloud ? "--cloud " : ""}--config agent.json
+            --cluster {cluster.id} --token-file enrollment.token
           </pre>
           <p className="muted">
             Start the enrolled agent with{" "}
-            <code>keldock agent --config agent.json</code>. Existing workloads
-            retain their last approved state during reconnection.
+            <code>
+              keldock {cloud ? "cloud-agent" : "agent"} --config agent.json
+            </code>
+            . Existing workloads retain their last approved state during
+            reconnection.
           </p>
         </div>
       )}
@@ -87,7 +97,9 @@ export function ClusterManagement({ cluster }: { cluster: Cluster }) {
             <DialogDescription>
               {action === "enroll"
                 ? "This invalidates unused enrollment grants. The existing agent is replaced only when the new grant is exchanged."
-                : "The current identity and unused enrollment grants will stop working. Running workloads are retained; a new enrollment is required to resume control."}
+                : cloud
+                  ? "The cloud agent identity and unused grants will stop working. AWS controllers retain their last approved state; AWS role revocation is a separate operator action."
+                  : "The current identity and unused enrollment grants will stop working. Running workloads are retained; a new enrollment is required to resume control."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -102,10 +114,10 @@ export function ClusterManagement({ cluster }: { cluster: Cluster }) {
                 try {
                   if (action === "enroll")
                     setEnrollment(
-                      await mutate(`/v1/clusters/${cluster.id}/enrollment`),
+                      await mutate(`${root}/clusters/${cluster.id}/enrollment`),
                     );
                   else {
-                    await mutate(`/v1/clusters/${cluster.id}/revoke`);
+                    await mutate(`${root}/clusters/${cluster.id}/revoke`);
                     setEnrollment(null);
                   }
                   setAction(null);

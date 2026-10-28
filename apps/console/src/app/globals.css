@@ -3,6 +3,7 @@
 @import "@fontsource-variable/figtree";
 @import "./styles/shell.css";
 @import "./styles/content.css";
+@import "./styles/cloud.css";
 @import "./styles/auth.css";
 @import "./styles/responsive.css";
 @custom-variant dark (&:is(.dark *));

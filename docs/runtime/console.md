@@ -83,7 +83,8 @@ React cache only deduplicates session reads within a render request.
 
 Build with `pnpm --filter @keldock/console build` and run the Next server separately from
 the API/worker and agent. Configure server-only `KELDOCK_API_ORIGIN` for the internal Go
-origin and set the Go installation's `publicUrl` to the canonical HTTPS console origin.
+origin **during both build and startup** (Next rewrites are resolved at build time),
+and set the Go installation's `publicUrl` to the canonical HTTPS console origin.
 The proxy forwards `/v1/*`, `/oauth/*`, `/.well-known/*` and the exact `/mcp` endpoint.
 Preserve the external Origin and Set-Cookie headers. Keep the API's database authority
 and the agent's Kubernetes/registry identity outside browser configuration.

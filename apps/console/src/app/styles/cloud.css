@@ -1,0 +1,19 @@
+@layer components {
+  .resource-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 20px 28px;
+  }
+  .resource-facts div {
+    min-width: 0;
+  }
+  .resource-facts dt {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .resource-facts dd {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+}
