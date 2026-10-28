@@ -46,4 +46,22 @@ jobs:
       - name: Install locked dependencies
         run: task bootstrap
       - name: Verify disposable runtime
-        run: task local:test
+        run: |
+          monitor_capacity() {
+            while true; do
+              date -u
+              df -h /
+              if [ -f .local/kubeconfig ]; then
+                kubectl --kubeconfig .local/kubeconfig --context k3d-keldock-m1 --request-timeout=5s get nodes \
+                  -o=jsonpath='{range .items[*]}{.metadata.name}{" taints="}{.spec.taints}{" conditions="}{range .status.conditions[*]}{.type}{":"}{.status}{" "}{end}{"\n"}{end}' || true
+              fi
+              sleep 30
+            done
+          }
+          monitor_capacity &
+          monitor_pid=$!
+          trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
+          task local:test
+      - name: Report disposable Docker capacity
+        if: always()
+        run: docker system df
