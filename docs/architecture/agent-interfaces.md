@@ -1,8 +1,10 @@
 # API, MCP and agent skills
 
-Status: authenticated shared inspection APIs and five remote MCP read tools are
-implemented. [ADR 0005](../decisions/0005-shared-authentication-and-remote-mcp.md) records
-the OAuth/SDK profile. MCP writes, first-party skills and assistant-host acceptance remain M4.
+Status: six shared inspection tools and three bounded nonproduction mutations are
+implemented, together with versioned preview and diagnosis skills. Full M4 live
+acceptance is in progress. [ADR 0005](../decisions/0005-shared-authentication-and-remote-mcp.md)
+records the OAuth profile; [ADR 0006](../decisions/0006-bounded-nonproduction-operations.md)
+records mutation authority and preview lifecycle.
 
 ## Shared behavior
 
@@ -18,33 +20,26 @@ practical, rather than requiring another service for every interface.
 Skills are versioned guidance for discovery, workflow and outcome interpretation. They
 do not grant authority, execute a hidden control plane, or replace server policy.
 
-## Implemented M2 reads
+## Implemented bounded surface
 
 The stateless Streamable HTTP adapter uses the official Go SDK v1.8.0 and MCP
-2026-07-28. Tools are list_projects, list_environments, get_environment, get_operation
-and get_diagnostics. The [authentication contract](../runtime/authentication.md) defines
-their pagination, bounded evidence, explicit project consent and durable revocation.
-Endpoint/client/connection management is available in the console. A real SDK client
-exercises registration, PKCE, refresh and narrowed access; no assistant-host pass is claimed.
+2026-07-28. Read tools are list_projects, list_environments, list_releases,
+get_environment, get_operation and get_diagnostics. Mutations are deploy_release,
+retry_operation and cancel_operation. See the [workflow contract](../runtime/agent-workflows.md)
+for exact inputs, receipts, error codes, policy limits and skill installation.
 
-## Planned complete v1 surface
+Read-only grants remain read-only. Explicit keldock:operate consent narrows current
+operator authority to selected projects. HTTP and MCP call one operation service;
+current account/grant/client/endpoint authority is rechecked inside the mutation
+transaction. Actor-scoped receipts survive client disconnection, and expected
+generations prevent stale selection.
 
-| Operation    | Behavior                                                                                        |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| Discover     | Paginated authorized projects, environments, admitted releases and capabilities                 |
-| Inspect      | Operation/deployment state, observation age, component failure and bounded redacted diagnostics |
-| Deploy       | Select an already admitted immutable release for an authorized nonproduction target             |
-| Retry/cancel | Apply the existing operation policy, identity, revision and cancellation semantics              |
-
-Write-tool names/schemas remain an M4 deliverable. CI owns the first provenance-checked
-release submission. MCP cannot assert that an arbitrary image is verified, and release
-reuse still checks current target authorization. Production promotion, privilege grants,
-module installation, cloud adoption, persistent-data deletion and arbitrary shell access
-are outside the initial tool surface.
-
-The first skills cover preview deployment from an admitted release and diagnosis/recovery
-of a failed rollout. Explain missing prerequisites, CI-owned build failures, supported
-retry/cancel, and operator decisions. Publish only tools and flows that work.
+CI owns provenance-checked initial admission. Selection references immutable stored
+inputs and rechecks current repository delegation, PR head and target policy. MCP
+cannot assert arbitrary images are verified. Production promotion, administrative
+grants, module installation, cloud adoption, persistent-data deletion and arbitrary
+execution remain outside the surface. The two portable skills guide supported preview
+and diagnosis/recovery workflows without changing these boundaries.
 
 ## Operation contract
 

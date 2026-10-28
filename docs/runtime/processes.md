@@ -1,6 +1,6 @@
 # Experimental runtime processes
 
-This is a developer profile with local accounts, enrolled agents and delegated MCP reads.
+This is a developer profile with local accounts, enrolled agents and delegated MCP reads and nonproduction operations.
 Use [the disposable acceptance environment](local-development.md) to reproduce its
 tested behavior. See [authentication and recovery](authentication.md) and the
 [console guide](console.md). [GitHub App delivery](github-delivery.md) has an experimental
@@ -97,3 +97,10 @@ events and late CI cannot reopen a closed preview. A strictly newer explicit reo
 permit a new release. The local suite exercises these routes with a loopback JWKS issuer
 and signed webhook fixtures; live App/Actions/GHCR results are recorded separately in
 [M3 validation](../validation/m3-github-delivery.md).
+
+## Preview and assistant operations
+
+Project entries accept an operator-owned previews profile with bounded lifetime and
+capacity. HTTP and MCP reuse admitted releases rather than accepting arbitrary images.
+See [preview policy, receipts and skill workflows](agent-workflows.md) for the supported
+configuration and operation contracts.

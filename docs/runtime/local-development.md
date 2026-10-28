@@ -1,7 +1,7 @@
 # Disposable runtime validation
 
 Status: experimental runtime with an authenticated API, worker, enrolled outbound agent,
-console, MCP reads and GitHub delivery. General installation remains a later gate; this is not an alpha.
+console, bounded MCP operations, portable skills and GitHub delivery. General installation remains a later gate; this is not an alpha.
 See [process commands and configuration](processes.md) and the
 [profile decision](../decisions/0005-shared-authentication-and-remote-mcp.md).
 

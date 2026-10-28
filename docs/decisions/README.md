@@ -10,6 +10,7 @@ Update the architecture and affected acceptance gates when superseding a decisio
 | [0003: Delivery and staged scope](0003-delivery-and-staged-scope.md)                       | Accepted; core runtime implemented; later gates pending |
 | [0004: First runtime profile](0004-first-runtime-profile.md)                               | Accepted; experimental development profile              |
 | [0005: Shared authentication and remote MCP](0005-shared-authentication-and-remote-mcp.md) | Accepted; implemented experimental M2 profile           |
+| [0006: Bounded nonproduction operations](0006-bounded-nonproduction-operations.md)         | Accepted design; M4 acceptance in progress              |
 
 Unsettled implementation choices belong in [M1](../implementation-plan.md#m1-contracts-and-bounded-spikes).
 Do not infer a runtime pin or a supported compatibility profile from an architectural

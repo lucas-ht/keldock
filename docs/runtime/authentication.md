@@ -22,7 +22,7 @@ three iterations and parallelism two, following the
 
 The console's People screens let administrators invite accounts, change their name,
 role, status and project grants, disable accounts and replace activation/reset links.
-Administrator is installation-wide; operator can read, retry and cancel within assigned
+Administrator is installation-wide; operator can read, select admitted releases, retry and cancel within assigned
 projects; viewer can read those projects. The last active administrator is protected.
 Updates require the expected account version and revoke existing sessions and MCP grants.
 Changing your own password replaces the current session and revokes other sessions/grants.
@@ -85,9 +85,11 @@ Callbacks require HTTPS or native loopback HTTP; no wildcard, userinfo or fragme
 accepted. Registration fetches no external callback or metadata URL. Client names are
 unverified metadata, shown alongside the exact callback during consent.
 
-The only scope is `keldock:read`. A signed-in person explicitly selects projects. An
-administrator's MCP connection remains read-only and cannot inherit projects outside
-that selection. Account changes, endpoint policy, client disable and grant revocation
+The default and existing scope is `keldock:read`. A current operator or administrator
+can explicitly consent to `keldock:read keldock:operate` for selected projects. A viewer
+cannot delegate operation authority. Refresh retains the original scope and cannot
+upgrade a read grant. An administrator's MCP connection has no administrative session
+authority and cannot inherit projects outside that selection. Account changes, endpoint policy, client disable and grant revocation
 are checked on every request and tool invocation; a browser cookie cannot authorize
 MCP. Requests last five minutes, codes last 60 seconds, access tokens last one hour and
 rotating refresh credentials share a maximum 30-day grant lifetime. Proven code or
@@ -103,13 +105,17 @@ registration and pending authorization requests are bounded.
 | get_environment   | Current selected release, component topology, digests and health |
 | get_operation     | One authorized operation and matching evidence/freshness         |
 | get_diagnostics   | Bounded redacted controller evidence for the current generation  |
+| list_releases     | Admitted release identities/digests, at most 25 per page         |
 
 These tools share the console's inspection service. They expose no application environment
 values, password material, kubeconfigs, agent credentials, arbitrary pod logs or shell
 execution. Diagnostics retain freshness and distinguish missing evidence from healthy
-workloads. Tool annotations describe read-only behavior; server policy enforces it.
+workloads. The additional deploy_release, retry_operation and cancel_operation tools
+share the console's operation service. They require current operator authority and
+explicit operation consent, rechecked transactionally with the mutation. Tool
+annotations are advisory. See [bounded workflows and skills](agent-workflows.md).
 
-Real SDK client acceptance covers discovery, registration, consent, exchange, standard
-refresh, tools, narrowed project access, redaction, stale evidence and revocation. It
-is not a compatibility claim for every assistant host. Hosted identity, SSO and MCP writes
-remain separate later work; first-party skills follow working bounded tools in M4.
+Real SDK client acceptance covers discovery, narrowed access, redaction, stale evidence,
+revocation, explicit write consent, receipt recovery after session loss and shared HTTP
+policy. Assistant-host behavior is a separate M4 evidence gate. Hosted identity and SSO
+remain later work.

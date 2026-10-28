@@ -50,13 +50,19 @@ every ten seconds, with manual refresh and loading/empty/error states.
 
 Project/environment details show immutable digests/source identity, exact-generation
 evidence, redacted controller messages and the last 50 durable selection events. Human
-operators can cancel or retry an admitted release within their project. Retry creates a
+operators can select an already admitted release for an existing staging/preview target,
+or cancel/retry within their project. The selection dialog shows the inspected generation,
+source identity and eligible releases, supports catalog pagination, and rejects stale
+intent through the shared API. PR targets require the current source head; production
+selection is unavailable. Expired previews can be recreated after observed cleanup while
+their PR remains open. Retry creates a
 new generation/deployment and keeps the original release/CI inputs; its idempotency key
 survives a lost response. Cancel retains completed effects and does not imply rollback.
 
 People manages invitations, roles, status and project grants. Clusters manages enrollment
 and revocation. MCP access manages the endpoint, registered clients and connections; a
-separate OAuth consent screen requires an explicit project selection. Account changes
+separate OAuth consent screen shows read versus operation authority and requires an
+explicit project selection. Existing read grants do not gain writes. Account changes
 and password recovery remain available in the FOSS core. Forms show failures and retain
 safe input; secrets appear only after their explicit one-time creation action.
 
