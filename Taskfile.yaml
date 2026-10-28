@@ -72,3 +72,34 @@ tasks:
     desc: Verify the running disposable console proxy and authenticated server rendering
     cmds:
       - node tooling/local/console-smoke.mjs
+
+  local:alpha:up:
+    desc: Prepare the separate disposable M6 PostgreSQL capability cluster
+    deps: [local:up]
+    cmds:
+      - node tooling/alpha/up.mjs
+
+  local:alpha:core:up:
+    desc: Prepare the separate constrained M6 core cluster without optional controllers
+    deps: [local:up]
+    cmds:
+      - node tooling/alpha/core-up.mjs
+
+  local:alpha:postgresql:test:
+    desc: Verify real PostgreSQL allocation, scoped backup, isolated WAL restore and control-plane recovery
+    deps: [local:alpha:up]
+    cmds:
+      - docker build -f tooling/alpha/storage.Dockerfile -t localhost:5010/keldock/m6-storage:fixture .
+      - node tooling/alpha/build-application.mjs
+      - node tooling/alpha/restore-registry.mjs
+      - go test -race -tags integration -timeout=35m -count=1 -v ./test/postgresql
+
+  local:alpha:core:lifecycle:
+    desc: Exercise uninstall retention, registrar revocation and supplied dependencies on the installed core fixture
+    cmds:
+      - node tooling/alpha/lifecycle/core.mjs --core
+
+  alpha:package:
+    desc: Prepare local reviewable alpha artifacts from clean committed source and explicit immutable image arguments
+    cmds:
+      - node tooling/alpha/package.mjs {{.CLI_ARGS}}

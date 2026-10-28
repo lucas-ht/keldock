@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["images", "installation", "storageClass"],
+  "properties": {
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime", "console"],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "pattern": "@sha256:[a-f0-9]{64}$"
+        },
+        "console": {
+          "type": "string",
+          "pattern": "@sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["existingSecret", "publicURL"],
+      "properties": {
+        "existingSecret": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,62}$"
+        },
+        "publicURL": {
+          "type": "string",
+          "pattern": "^https://[^/@?#]+/?$|^http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?$"
+        }
+      }
+    },
+    "storageClass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extraTrustSecret": {
+      "type": "string"
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "storage": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*Gi$"
+        }
+      }
+    },
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "storage": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*Gi$"
+        }
+      }
+    },
+    "databases": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "registrar": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "const": "traefik"
+        },
+        "host": {
+          "type": "string"
+        },
+        "tlsSecret": {
+          "type": "string"
+        }
+      }
+    },
+    "hostAliases": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ip", "hostnames"],
+        "properties": {
+          "ip": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hostnames": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "publisherCredential": {
+      "type": "boolean"
+    },
+    "registryReaders": {
+      "type": "boolean"
+    },
+    "networking": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "controlEgress": { "$ref": "#/definitions/egress" },
+        "agentEgress": { "$ref": "#/definitions/egress" }
+      }
+    }
+  },
+  "definitions": {
+    "egress": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["to", "ports"],
+        "properties": {
+          "to": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "object", "minProperties": 1 }
+          },
+          "ports": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "object", "minProperties": 1 }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+apiVersion: keldock.io/v1alpha1
+name: notebook
+resources:
+  data: { kind: postgresql, profile: development }
+components:
+  migrate:
+    kind: job
+    size: small
+    command: [/app, migrate]
+    resources: [data]
+  api:
+    kind: http
+    size: small
+    command: [/app, api]
+    port: 8080
+    probe: { path: /healthz }
+    dependsOn: [migrate]
+    resources: [data]
+  web:
+    kind: http
+    size: small
+    command: [/app, web]
+    port: 8080
+    route: true
+    probe: { path: /healthz }
+    dependsOn: [api]
+    connectsTo: [api]
+  worker:
+    kind: worker
+    size: small
+    command: [/app, worker]
+    probe: { command: [/app, health] }
+    dependsOn: [migrate]
+    resources: [data]
+  schedule:
+    kind: cronjob
+    size: small
+    command: [/app, schedule]
+    schedule: "* * * * *"
+    dependsOn: [migrate]
+    resources: [data]

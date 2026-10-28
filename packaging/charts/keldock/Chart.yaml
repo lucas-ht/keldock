@@ -1,0 +1,9 @@
+apiVersion: v2
+name: keldock
+description: Customer-controlled Keldock self-hosted development alpha
+type: application
+version: 0.6.0-alpha.1
+appVersion: "0.6.0-alpha.1"
+kubeVersion: ">=1.35.0-0 <1.36.0-0"
+home: https://github.com/lucas-ht/keldock
+sources: [https://github.com/lucas-ht/keldock]

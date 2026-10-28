@@ -6,3 +6,5 @@ pnpm-lock.yaml
 .local/
 coverage/
 reports/
+packaging/charts/*/templates/
+**/.next-alpha/

@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/lucas-ht/keldock/internal/agent"
+	"github.com/lucas-ht/keldock/internal/buildinfo"
 	"github.com/lucas-ht/keldock/internal/cluster"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 )
@@ -27,11 +28,27 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) error {
+	if len(args) > 0 && args[0] == "version" {
+		fmt.Printf("keldock %s (%s)\n", buildinfo.Version, buildinfo.Revision)
+		return nil
+	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: keldock serve|agent|enroll|bootstrap|recover|inspect|validate|prepare|attest|keygen|cloud")
+		return fmt.Errorf("usage: keldock serve|agent|database-agent|enroll|bootstrap|recover|recovery|installation|inspect|validate|prepare|attest|keygen|cloud|version")
+	}
+	if args[0] == "init-files" {
+		return privateFilesCommand(args[1:])
+	}
+	if args[0] == "process-health" {
+		return processHealthCommand(args[1:])
+	}
+	if args[0] == "installation" {
+		return installationCommand(ctx, args[1:])
 	}
 	if args[0] == "cloud" {
 		return cloudCommand(args[1:])
+	}
+	if args[0] == "recovery" {
+		return recoveryCommand(ctx, args[1:])
 	}
 	if args[0] == "cloud-agent" {
 		return cloudAgentCommand(ctx, args[1:])
@@ -53,6 +70,7 @@ func run(ctx context.Context, args []string) error {
 	configuration := flags.String("config", "", "private runtime configuration file")
 	definition := flags.String("file", "keldock.yaml", "application definition")
 	migrate := flags.Bool("migrate", false, "explicitly apply control-plane database migrations")
+	waitEnrollment := flags.Bool("wait-for-enrollment", false, "wait for an operator to enroll this process")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -94,11 +112,13 @@ func run(ctx context.Context, args []string) error {
 		if args[0] == "inspect" {
 			return json.NewEncoder(os.Stdout).Encode(dependencies)
 		}
-		client, err := agent.ClientFromFile(settings.APIURL, settings.CredentialFile, settings.Development)
-		if err != nil {
-			return err
-		}
-		return (agent.Agent{Client: client, Driver: driver}).Run(ctx)
+		return runEnrolled(ctx, settings.CredentialFile, settings.HealthFile, *waitEnrollment, func() error {
+			client, err := agent.ClientFromFile(settings.APIURL, settings.CredentialFile, settings.Development)
+			if err != nil {
+				return err
+			}
+			return (agent.Agent{Client: client, Driver: driver, HealthFile: settings.HealthFile}).Run(ctx)
+		})
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
 	}

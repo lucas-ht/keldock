@@ -43,14 +43,11 @@ func databaseAgentCommand(ctx context.Context, args []string) error {
 	if err := driver.Inspect(ctx); err != nil {
 		return err
 	}
-	if *waitEnrollment {
-		if err := waitForEnrollment(ctx, settings.CredentialFile, settings.HealthFile); err != nil {
+	return runEnrolled(ctx, settings.CredentialFile, settings.HealthFile, *waitEnrollment, func() error {
+		client, err := agent.DatabaseClientFromFile(settings.APIURL, settings.CredentialFile, settings.Development)
+		if err != nil {
 			return err
 		}
-	}
-	client, err := agent.DatabaseClientFromFile(settings.APIURL, settings.CredentialFile, settings.Development)
-	if err != nil {
-		return err
-	}
-	return (databaseagent.Agent{Client: client, Driver: driver, Policies: policies, HealthFile: settings.HealthFile}).Run(ctx)
+		return (databaseagent.Agent{Client: client, Driver: driver, Policies: policies, HealthFile: settings.HealthFile}).Run(ctx)
+	})
 }

@@ -21,3 +21,13 @@ if (running !== `go${version}`)
 if (!readFileSync(".mise.toml", "utf8").includes(`go = "${version}"`))
   throw new Error("Go module and mise pins must agree");
 process.stdout.write(`Go ${version} and formatting verified.\n`);
+for (const cwd of [
+  "examples/postgresql/application",
+  "tooling/fixtures/backup-store",
+]) {
+  for (const args of [
+    ["vet", "./..."],
+    ["test", "-race", "./..."],
+  ])
+    execFileSync("go", args, { cwd, stdio: "inherit" });
+}

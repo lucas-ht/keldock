@@ -30,6 +30,25 @@ func privateFilesCommand(args []string) error {
 			return err
 		}
 	}
+	// Kubelet's fsGroup handling can add group bits when a retained volume is
+	// mounted into a replacement pod. Repair the owned private directory before
+	// strict credential readers start, without accepting links or nested state.
+	entries, err := os.ReadDir(*state)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() || info.Size() > 1024*1024 {
+			return fmt.Errorf("invalid retained private state entry")
+		}
+		if err := os.Chmod(filepath.Join(*state, entry.Name()), 0o600); err != nil {
+			return err
+		}
+	}
 	for _, name := range []string{"control.json", "agent.json", "database-agent.json", "webhook.secret", "postgres-password", "registry-password", "registry-pulls.json"} {
 		path := filepath.Join(*source, name)
 		info, err := os.Stat(path)

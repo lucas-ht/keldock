@@ -1,0 +1,91 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-default-deny
+  labels: {{- include "keldock.labels" . | nindent 4 }}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}}}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-control
+  labels: {{- include "keldock.labels" . | nindent 4 }}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: control}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: traefik}}
+      ports: [{protocol: TCP, port: 3800}]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: database}}
+      ports: [{protocol: TCP, port: 5432}]
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: registry}}
+      ports: [{protocol: TCP, port: 5000}]
+    - ports: [{protocol: TCP, port: 443}]
+    {{- with .Values.networking.controlEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-agents
+  labels: {{- include "keldock.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}}
+    matchExpressions: [{key: keldock.io/process, operator: In, values: [registrar, database-agent]}]
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - ports: [{protocol: TCP, port: 443}, {protocol: TCP, port: 6443}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: traefik}}
+      ports: [{protocol: TCP, port: 8443}]
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: registry}}
+      ports: [{protocol: TCP, port: 5000}]
+    {{- with .Values.networking.agentEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-database
+  labels: {{- include "keldock.labels" . | nindent 4 }}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: database}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: control}}}]
+      ports: [{protocol: TCP, port: 5432}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-registry
+  labels: {{- include "keldock.labels" . | nindent 4 }}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: registry}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/instance: {{ .Release.Name | quote }}, keldock.io/process: control}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: keldock-system}}
+          podSelector: {matchLabels: {app: source-controller}}
+      ports: [{protocol: TCP, port: 5000}]

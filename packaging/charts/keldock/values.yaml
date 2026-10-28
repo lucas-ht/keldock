@@ -1,0 +1,30 @@
+# Generate private inputs and this public values overlay with keldock installation init.
+images:
+  runtime: ""
+  console: ""
+installation:
+  existingSecret: ""
+  publicURL: ""
+storageClass: ""
+extraTrustSecret: ""
+hostAliases: []
+publisherCredential: false
+registryReaders: false
+networking:
+  controlEgress: []
+  agentEgress: []
+database:
+  enabled: true
+  storage: 2Gi
+registry:
+  enabled: true
+  storage: 5Gi
+databases:
+  enabled: false
+registrar:
+  enabled: true
+ingress:
+  enabled: true
+  className: traefik
+  host: ""
+  tlsSecret: ""

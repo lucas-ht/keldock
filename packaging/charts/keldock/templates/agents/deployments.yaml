@@ -1,0 +1,74 @@
+{{- $root := . -}}
+{{- range $process := list "registrar" "database-agent" -}}
+{{- if or (and (eq $process "registrar") $.Values.registrar.enabled) (and (eq $process "database-agent") $.Values.databases.enabled) }}
+{{- $file := ternary "agent.json" "database-agent.json" (eq $process "registrar") }}
+{{- $command := ternary "agent" "database-agent" (eq $process "registrar") }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $.Release.Name }}-{{ $process }}
+  labels: {{- include "keldock.labels" $ | nindent 4 }}
+automountServiceAccountToken: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $process }}
+  labels: {{- include "keldock.labels" $ | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name | quote }}, keldock.io/process: {{ $process }}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/instance: {{ $.Release.Name | quote }}, keldock.io/process: {{ $process }}}
+    spec:
+      serviceAccountName: {{ $.Release.Name }}-{{ $process }}
+      {{- with $.Values.hostAliases }}
+      hostAliases: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext: {{- include "keldock.runtimeSecurity" $ | nindent 8 }}
+      initContainers:
+        - name: private-configuration
+          image: {{ $.Values.images.runtime | quote }}
+          args: [init-files]
+          securityContext: {{- include "keldock.containerSecurity" $ | nindent 12 }}
+          resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
+          volumeMounts:
+            - {name: input, mountPath: /input, readOnly: true}
+            - {name: runtime, mountPath: /runtime}
+            - {name: state, mountPath: /state}
+      containers:
+        - name: {{ $process }}
+          image: {{ $.Values.images.runtime | quote }}
+          args: [{{ $command | quote }}, --config, {{ printf "/runtime/private/%s" $file | quote }}, --wait-for-enrollment]
+          securityContext: {{- include "keldock.containerSecurity" $ | nindent 12 }}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 384Mi}}
+          startupProbe: {exec: {command: [/usr/local/bin/keldock, process-health]}, periodSeconds: 3, failureThreshold: 60}
+          readinessProbe: {exec: {command: [/usr/local/bin/keldock, process-health]}, periodSeconds: 10}
+          livenessProbe: {exec: {command: [/usr/local/bin/keldock, process-health]}, periodSeconds: 15, failureThreshold: 4}
+          env: {{- include "keldock.trustEnv" $ | nindent 12 }}
+          volumeMounts:
+            - {name: runtime, mountPath: /runtime, readOnly: true}
+            - {name: state, mountPath: /state}
+            - {name: tmp, mountPath: /tmp}
+            {{- include "keldock.trustMount" $ | nindent 12 }}
+      volumes:
+        - name: input
+          secret:
+            secretName: {{ $.Values.installation.existingSecret | quote }}
+            defaultMode: 288
+            items:
+              - {key: {{ $file }}, path: {{ $file }}}
+              {{- if and (eq $process "registrar") $.Values.registryReaders }}
+              - {key: registry-pulls.json, path: registry-pulls.json}
+              {{- end }}
+        - {name: runtime, emptyDir: {medium: Memory, sizeLimit: 8Mi}}
+        - {name: tmp, emptyDir: {sizeLimit: 64Mi}}
+        - name: state
+          persistentVolumeClaim: {claimName: {{ $.Release.Name }}-{{ $process }}-state}
+        {{- include "keldock.trustVolume" $ | nindent 8 }}
+---
+{{- end -}}
+{{- end -}}
