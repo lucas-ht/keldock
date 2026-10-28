@@ -39,6 +39,10 @@ func waitAgent(t *testing.T, ctx context.Context, fixture *apiFixture, runtime a
 		}
 		time.Sleep(time.Second)
 	}
+	if desired, err := fixture.store.CurrentDesired(ctx, fixture.scope.OrganizationID, "keldock-m1", receipt.EnvironmentID); err == nil {
+		status, err := kube(t, ctx, "get", "kustomization", "keldock-migrate", "-n", desired.Selection.Namespace, "-o", "jsonpath={.status}")
+		t.Logf("Migration controller status at failed wait: %s (%v)", status, err)
+	}
 	t.Fatalf("wanted API state %s, got %+v report=%+v error=%v", state, last.Operation, last.Report, lastError)
 	return last
 }

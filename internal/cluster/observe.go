@@ -119,7 +119,20 @@ func (registrar *Registrar) Observe(ctx context.Context, selection compiler.Sele
 				health.Reason = "ScheduleConfigured"
 				health.Message = "Schedule configured; this does not prove an execution completed."
 			}
-			if !health.Ready && selectedFailure(object, digest) {
+			jobFailed := false
+			if !health.Ready && sourceReady && definition.Components[name].Kind == "job" && object.GetLabels()["keldock.io/deployment"] == selection.DeploymentID {
+				job, err := registrar.resource("Job", selection.Namespace).Get(ctx, compiler.JobName(name, selection.DeploymentID), metav1.GetOptions{})
+				if err != nil && !apierrors.IsNotFound(err) {
+					return report, err
+				}
+				if err == nil && selectedJobFailure(job, name, images[name], selection) {
+					jobFailed = true
+					report.State, report.Reason = "failed", "SelectedJobFailed"
+					health.Reason, health.Message = "SelectedJobFailed", "The selected deployment's job reached a terminal failure. Submit a corrected release to retry."
+					health.WorkloadUID, health.WorkloadVersion, health.Image = string(job.GetUID()), job.GetResourceVersion(), images[name]
+				}
+			}
+			if !health.Ready && !jobFailed && selectedFailure(object, digest) {
 				report.State = "failed"
 				report.Reason = reason
 				if reason == "Progressing" || reason == "ProgressingWithRetry" {
