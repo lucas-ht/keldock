@@ -80,6 +80,13 @@ func NewGitHub(ctx context.Context, issuer, audience string, policies []Reposito
 		trusted[policy.RepositoryID] = policy
 	}
 	ctx = oidc.ClientContext(ctx, &http.Client{Timeout: 10 * time.Second})
+	if issuer == "https://token.actions.githubusercontent.com" {
+		// The fixed supported issuer publishes this endpoint in its discovery
+		// document. Fetch keys on first authentication, so an issuer outage cannot
+		// prevent startup/recovery or operations on previously admitted releases.
+		keys := oidc.NewRemoteKeySet(ctx, issuer+"/.well-known/jwks")
+		return &GitHub{verifier: oidc.NewVerifier(issuer, keys, &oidc.Config{ClientID: audience, SupportedSigningAlgs: []string{oidc.RS256}}), policies: trusted}, nil
+	}
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		return nil, fmt.Errorf("discover CI issuer: %w", err)

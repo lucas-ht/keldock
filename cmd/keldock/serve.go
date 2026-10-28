@@ -25,7 +25,7 @@ import (
 )
 
 func serve(ctx context.Context, settings controlSettings, migrate bool) error {
-	if !v1.ValidName(settings.Organization) || !v1.ValidName(settings.Cluster) || len(validation.IsDNS1123Subdomain(settings.Domain)) != 0 || settings.Listen == "" || len(settings.Projects) == 0 || len(settings.Projects) > 32 {
+	if !v1.ValidName(settings.Organization) || !v1.ValidName(settings.Cluster) || len(validation.IsDNS1123Subdomain(settings.Domain)) != 0 || settings.Listen == "" || len(settings.Projects) > 32 {
 		return fmt.Errorf("invalid installation, domain, listen address or project configuration")
 	}
 	if settings.RegistryPlainHTTP && !settings.Development {
@@ -44,6 +44,11 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 		if err := store.Migrate(ctx); err != nil {
 			return err
 		}
+	}
+	if fenced, err := store.RecoveryFenced(ctx, settings.Organization); err != nil {
+		return err
+	} else if fenced {
+		return fmt.Errorf("restored installation is fenced; run recovery review and resume against the surviving cluster before serving")
 	}
 	projects := map[string]v1.Project{}
 	owners := map[int64]int64{}

@@ -33,6 +33,9 @@ func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedD
 	if err != nil {
 		return err
 	}
+	if err := registrar.checkpoint(ctx, JournalEntry{Scope: desired.Operation.Scope, EnvironmentID: selection.EnvironmentID, Generation: selection.Generation, Action: "deploy", DeploymentID: selection.DeploymentID, Bundle: bundle}); err != nil {
+		return err
+	}
 	if err := registrar.register(ctx, selection, len(plan.workloads) > 0); err != nil {
 		return err
 	}
@@ -98,6 +101,9 @@ func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedD
 
 // Remove prunes Flux workloads before removing their identities and disposable namespace.
 func (registrar *Registrar) Remove(ctx context.Context, selection compiler.Selection) (bool, error) {
+	if err := registrar.checkpoint(ctx, JournalEntry{EnvironmentID: selection.EnvironmentID, Generation: selection.Generation, Action: "delete"}); err != nil {
+		return false, err
+	}
 	namespace, err := registrar.resource("Namespace", "").Get(ctx, selection.Namespace, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return true, nil

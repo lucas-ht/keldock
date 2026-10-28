@@ -11,6 +11,9 @@ import (
 
 // Suspend stops future Flux steps while retaining completed workload effects and data.
 func (registrar *Registrar) Suspend(ctx context.Context, selection compiler.Selection) error {
+	if err := registrar.checkpoint(ctx, JournalEntry{EnvironmentID: selection.EnvironmentID, Generation: selection.Generation, Action: "suspend", DeploymentID: selection.DeploymentID}); err != nil {
+		return err
+	}
 	namespace, err := registrar.resource("Namespace", "").Get(ctx, selection.Namespace, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil

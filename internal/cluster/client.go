@@ -25,10 +25,11 @@ var ErrOwnership = errors.New("object has another owner or a newer desired gener
 
 // Registrar owns protected substrate and Flux configuration, never application builds.
 type Registrar struct {
-	client          dynamic.Interface
-	Repository      string
-	PlainHTTP       bool
-	CredentialsFile string
+	client           dynamic.Interface
+	Repository       string
+	PlainHTTP        bool
+	CredentialsFile  string
+	JournalNamespace string
 }
 
 var resources = map[string]schema.GroupVersionResource{
@@ -70,7 +71,7 @@ func New(kubeconfig, kubeContext, repository string, plainHTTP bool) (*Registrar
 	if err != nil {
 		return nil, err
 	}
-	return &Registrar{client: client, Repository: repository, PlainHTTP: plainHTTP}, nil
+	return &Registrar{client: client, Repository: repository, PlainHTTP: plainHTTP, JournalNamespace: "keldock-system"}, nil
 }
 
 func (registrar *Registrar) resource(kind, namespace string) dynamic.ResourceInterface {
