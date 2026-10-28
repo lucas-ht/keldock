@@ -1,8 +1,8 @@
 # Keldock implementation plan
 
 Updated 2026-10-28. Milestones are dependency gates, not calendar commitments.
-This is a fresh repository: M0/core M1, M2 and the GitHub.com/GHCR M3 profile are
-implemented. Private GitHub Container Registry (GHCR) pulls were assigned to M3 by
+This is a fresh repository: M0/core M1, M2, the GitHub.com/GHCR M3 profile and the
+stateless preview/MCP/skills M4 profile are implemented. Private GitHub Container Registry (GHCR) pulls were assigned to M3 by
 operator decision and now have live evidence; additional registry profiles follow later.
 No previous prototype tests, schemas, or live-cloud results are claimed as Keldock evidence.
 
@@ -33,7 +33,7 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 | M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain |
 | M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                              |
 | M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Implemented; development profile         |
-| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Pending                                  |
+| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Implemented; development profile         |
 | M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Optional future track                    |
 | M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                  |
 | M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                    |
@@ -202,6 +202,14 @@ Prove the workflow with an SDK client and one documented assistant host: policy 
 with UI, no provenance bypass, bounded diagnostics, explicit failure, idempotent receipts,
 stale request denial and continuation after session loss. Test the skills against the
 same workflow. Assistant prose is not evidence of deployment success.
+
+Implemented and [validated](validation/m4-previews-and-agents.md): stable PR preview
+identity, bounded operator policy, expiry/closure fences, admitted-release reuse and
+transactional write consent shared by HTTP/MCP. Versioned skills ran in Codex CLI
+against the real example, including receipt recovery and disconnected retry. Live
+validation covered updates, private-pull failure/recovery, cancellation, expiry,
+late CI rejection, explicit recreation and closure cleanup. This accepts the stateless
+development profile; persistent-data recovery and general installation remain M6.
 
 ## M5: Optional AWS extension
 

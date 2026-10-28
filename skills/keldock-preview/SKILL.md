@@ -28,7 +28,8 @@ never grant server authority.
    recreated after its delete operation reaches deleted; closure remains a fence.
 3. Use list_releases to find an admitted release for that project/repository and PR
    whose source headCommit matches pullRequestHead. Catalog ordering is by cursor,
-   not release age. If the user has not selected a release, use the latest matching
+   not release age. Follow every nextCursor page before deciding which matching run
+   is latest. If the user has not selected a release, use the latest matching
    runId/runAttempt only when that choice is unambiguous. CI owns preparation,
    provenance, builds, tests and image publication. If no matching admitted release
    exists, report the missing CI prerequisite instead of inventing images or provenance.

@@ -51,6 +51,7 @@ Save receipt from the result. An uncertain response or interrupted assistant ses
 requires the identical request/key on reconnect. Changed intent needs a new key. Read
 get_operation and get_environment for the outcome. Do not claim Ready unless the
 current selected generation/deployment and a fresh ready observation match the receipt.
+For a preview, also confirm its current PR head still matches the selected release.
 Return the durable IDs and last observed state if a bounded wait ends.
 
 ## Authority and changed state

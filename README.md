@@ -18,16 +18,20 @@ remain complete without a paid account or enterprise identity provider.
 
 The experimental runtime includes a Go API, durable PostgreSQL worker, OCI publication,
 outbound agent and scoped Flux reconciliation. [Accounts and enrolled identities](docs/runtime/authentication.md)
-now protect the [Next.js console](docs/runtime/console.md) and five read-only MCP tools.
-The console leads with deployment health, with separate people, cluster and MCP access
-management. [Disposable tests](docs/validation/m2-access-and-console.md) exercise real
-PostgreSQL, Kubernetes, HTTP and an OAuth-enabled MCP SDK client.
+protect the [health-first console](docs/runtime/console.md) and MCP adapter. GitHub App
+setup, the thin OIDC Action, durable feedback and private GHCR pulls have
+[live acceptance evidence](docs/validation/m3-github-delivery.md).
 
-M2 is accepted for the local profile. M3 adds [GitHub App setup, the thin Action, durable
-feedback and private GHCR pulls](docs/runtime/github-delivery.md), with [live acceptance
-evidence](docs/validation/m3-github-delivery.md). Other registries, MCP writes, skills
-and general installation retain their later milestone gates. This is not a packaged
-self-hosted alpha or a production-validation claim.
+M4 adds operator-controlled stateless previews, six MCP read tools, three bounded
+nonproduction operations, console release selection and versioned preview/diagnosis
+skills. [The workflow guide](docs/runtime/agent-workflows.md) explains consent, receipts,
+expiry and skill setup; [M4 evidence](docs/validation/m4-previews-and-agents.md) records
+SDK, Codex CLI, browser and real keldock-example validation. Selection reuses admitted
+CI inputs and cannot introduce arbitrary images or production/admin authority.
+
+M2–M4 implement the development profile. Other registries, persistent application data,
+general installation and hosted operation retain their later milestone gates. This is
+not a packaged self-hosted alpha or a production-validation claim.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.

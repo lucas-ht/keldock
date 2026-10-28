@@ -1,8 +1,9 @@
 # API, MCP and agent skills
 
 Status: six shared inspection tools and three bounded nonproduction mutations are
-implemented, together with versioned preview and diagnosis skills. Full M4 live
-acceptance is in progress. [ADR 0005](../decisions/0005-shared-authentication-and-remote-mcp.md)
+implemented, together with versioned preview and diagnosis skills.
+[The M4 evidence](../validation/m4-previews-and-agents.md) records the tested stateless
+profile, real SDK and Codex CLI workflows. [ADR 0005](../decisions/0005-shared-authentication-and-remote-mcp.md)
 records the OAuth profile; [ADR 0006](../decisions/0006-bounded-nonproduction-operations.md)
 records mutation authority and preview lifecycle.
 

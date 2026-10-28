@@ -90,7 +90,11 @@ These are logical boundaries, not one service per box. The implemented baseline 
 for a modular API/worker and outbound agent/registrar, with PostgreSQL for durable state.
 The [first runtime profile](decisions/0004-first-runtime-profile.md) selects development
 packaging. [Shared authentication](decisions/0005-shared-authentication-and-remote-mcp.md)
-now protects a Next.js/React console, enrolled agents and a remote read-only MCP adapter.
+now protects a Next.js/React console, enrolled agents and a remote MCP adapter with
+explicitly consented nonproduction operations. [Preview and diagnosis skills](runtime/agent-workflows.md)
+use the same bounded service as the console, with immutable admitted releases and
+revision-bound receipts; [ADR 0006](decisions/0006-bounded-nonproduction-operations.md)
+records the preview policy and mutation boundary.
 The console prioritizes deployment health and exposes account, cluster, GitHub and MCP
 lifecycle management. The [GitHub delivery profile](runtime/github-delivery.md) adds
 installation-owned App setup, a thin OIDC Action, durable feedback and scoped private

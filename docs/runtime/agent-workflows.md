@@ -53,9 +53,17 @@ Release IDs select immutable stored CI inputs. Tools cannot introduce new images
 bypass OIDC/provenance admission. CI must first admit a release matching the current PR
 head. Retry may rerun release jobs and cannot repair faulty inputs or reverse effects.
 
+HTTP clients use GET `/v1/projects/{project}/releases` for the catalog and POST
+`/v1/projects/{project}/environments/{environment}/deployments` with releaseId/generation.
+POST `/v1/projects/{project}/operations/{operation}/retry` and `/cancel` take generation.
+Each mutation supplies `Idempotency-Key`; human sessions additionally require the
+canonical Origin and session CSRF proof. An explicitly scoped MCP bearer can use the
+same mutation endpoints. HTTP stale/conflict responses use status 409 and code conflict;
+MCP distinguishes stale_revision in its structured tool result.
+
 ## Failure handling
 
-Errors are tool results with IsError and a structured `error` containing code/message.
+Operation errors are tool results with IsError and a structured `error` containing code/message.
 Schema validation rejects unsupported extra arguments before operation handling.
 
 | Code            | Required behavior                                                            |
@@ -115,8 +123,15 @@ skill, API and MCP compatibility. Configure that host's MCP connection separatel
 never put credentials or installation-specific IDs in a skill package.
 
 For Codex CLI, project skills live in `.agents/skills/<name>/SKILL.md`. Configure an
-HTTP MCP server with the canonical URL and complete the host's OAuth login flow using
-explicit operation consent when needed. Invoke `$keldock-preview` for an admitted
+HTTP MCP server with the canonical URL and complete its OAuth login. With CLI 0.162.0:
+
+```sh
+codex mcp add keldock --url https://keldock.example.com/mcp
+codex mcp login keldock --scopes keldock:read,keldock:operate
+```
+
+Replace the example origin with your installation. Request only keldock:read for
+inspection; adding operation authority requires fresh project consent. Invoke `$keldock-preview` for an admitted
 preview deployment, or `$keldock-diagnose` for diagnosis and an explicitly requested
 retry/cancellation. Host approval controls can add consent; they cannot expand the
 server grant. See the official [MCP integration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)

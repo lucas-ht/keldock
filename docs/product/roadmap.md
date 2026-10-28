@@ -10,10 +10,11 @@ optional PostgreSQL with supplied backup infrastructure, and bounded MCP/skills 
 module administration, AWS provisioning, hosted service, and compute fleets are separate
 gates. Keep the product FOSS and accessible to individuals and small teams.
 
-The current M2 slice provides local accounts/recovery, enrolled agent identity, a
-deployment-first console and consented MCP reads. These keep the future hosted boundary
-concrete while leaving capability installation, skills and hosted tenancy behind their
-own evidence gates. See [current validation](../validation/m2-access-and-console.md).
+The development profile now includes local accounts/recovery, enrolled agents, a
+health-first console, stateless preview policy, bounded MCP release selection/retry/cancel
+and versioned preview/diagnosis skills. [M4 validation](../validation/m4-previews-and-agents.md)
+records real SDK and assistant-host behavior against the private example workflow.
+General capability installation and hosted tenancy retain their own evidence gates.
 
 M2 is accepted for its tested local profile. M3 implements private GHCR pulls alongside
 GitHub App/Actions/feedback, with [separate live acceptance](../validation/m3-github-delivery.md).

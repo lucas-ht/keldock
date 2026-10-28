@@ -117,5 +117,6 @@ annotations are advisory. See [bounded workflows and skills](agent-workflows.md)
 
 Real SDK client acceptance covers discovery, narrowed access, redaction, stale evidence,
 revocation, explicit write consent, receipt recovery after session loss and shared HTTP
-policy. Assistant-host behavior is a separate M4 evidence gate. Hosted identity and SSO
-remain later work.
+policy. [M4 evidence](../validation/m4-previews-and-agents.md) records the actual Codex
+CLI skill workflows; it does not claim compatibility with every assistant host. Hosted
+identity and SSO remain later work.

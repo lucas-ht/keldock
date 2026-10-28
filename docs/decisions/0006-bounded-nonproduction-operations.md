@@ -1,6 +1,6 @@
 # 0006: Bounded nonproduction operations and stateless preview policy
 
-Status: accepted design; M4 implementation and full acceptance in progress.
+Status: accepted; implemented experimental M4 profile.
 
 ## Decision
 
