@@ -38,7 +38,7 @@ func TestDomainClaimUsesLabelBoundaryAndExactConsumer(t *testing.T) {
 		host    string
 		allowed bool
 	}{
-		{"test.example.com", true}, {"preview.test.example.com", true},
+		{"test.example.com", false}, {"preview.test.example.com", true},
 		{"not-test.example.com", false}, {"test.example.com.evil.example", false},
 		{"*.test.example.com", false}, {"PREVIEW.test.example.com", false}, {"preview.test.example.com.", false},
 		{"_acme-challenge.test.example.com", false}, {"127.0.0.1", false},

@@ -33,40 +33,29 @@ func (worker *Agent) Step(ctx context.Context) error {
 	if err := worker.Client.CloudRPC(ctx, http.MethodGet, "desired", nil, &snapshot); err != nil {
 		return err
 	}
-	if len(snapshot.Items) > 1000 {
-		return fmt.Errorf("cloud inventory exceeds supported bound")
-	}
-	items := map[string]cloud.Intent{}
-	counts := map[string]int{}
-	for _, item := range snapshot.Items {
-		policy, ok := worker.Policies[item.ProjectID]
-		if !ok || policy.Scope != item.Scope || policy.Validate() != nil {
-			return fmt.Errorf("cloud snapshot outside local operator policy")
-		}
-		if item.Resource != nil {
-			key := item.ProjectID + "/" + item.Resource.Profile
-			counts[key]++
-			if counts[key] > policy.Profiles[item.Resource.Profile].MaxResources {
-				return fmt.Errorf("cloud snapshot exceeds local resource capacity")
-			}
-		}
-		if _, duplicate := items[item.ID]; duplicate {
-			return fmt.Errorf("duplicate cloud inventory identity")
-		}
-		items[item.ID] = item
+	if _, err := worker.validateSnapshot(snapshot.Items); err != nil {
+		return err
 	}
 	slices.SortStableFunc(snapshot.Items, func(a, b cloud.Intent) int { return order(a.Kind) - order(b.Kind) })
 	var failures []error
 	for _, listed := range snapshot.Items {
-		var current cloud.Intent
-		if err := worker.Client.CloudRPC(ctx, http.MethodGet, "intents/"+listed.ID, nil, &current); err != nil {
-			failures = append(failures, err)
+		// Shared IAM policies depend on every grant and the current parent connection.
+		// Refresh the complete snapshot so a revoked sibling cannot be restored by
+		// reconciling another binding from the beginning of this polling cycle.
+		var fresh struct {
+			Items []cloud.Intent `json:"items"`
+		}
+		if err := worker.Client.CloudRPC(ctx, http.MethodGet, "desired", nil, &fresh); err != nil {
+			return err
+		}
+		items, err := worker.validateSnapshot(fresh.Items)
+		if err != nil {
+			return err
+		}
+		current, exists := items[listed.ID]
+		if !exists || current.Generation != listed.Generation || current.Action != listed.Action {
 			continue
 		}
-		if current.Generation != listed.Generation || current.Action != listed.Action {
-			continue
-		}
-		items[current.ID] = current
 		policy := worker.Policies[current.ProjectID]
 		report := worker.Driver.Reconcile(ctx, policy, current, items)
 		report.ID = current.ID
@@ -77,6 +66,32 @@ func (worker *Agent) Step(ctx context.Context) error {
 		}
 	}
 	return errors.Join(failures...)
+}
+
+func (worker *Agent) validateSnapshot(snapshot []cloud.Intent) (map[string]cloud.Intent, error) {
+	if len(snapshot) > 1000 {
+		return nil, fmt.Errorf("cloud inventory exceeds supported bound")
+	}
+	items := map[string]cloud.Intent{}
+	counts := map[string]int{}
+	for _, item := range snapshot {
+		policy, ok := worker.Policies[item.ProjectID]
+		if !ok || policy.Scope != item.Scope || policy.Validate() != nil {
+			return nil, fmt.Errorf("cloud snapshot outside local operator policy")
+		}
+		if item.Resource != nil && item.Action != "disconnected" {
+			key := item.ProjectID + "/" + item.Resource.Profile
+			counts[key]++
+			if counts[key] > policy.Profiles[item.Resource.Profile].MaxResources {
+				return nil, fmt.Errorf("cloud snapshot exceeds local resource capacity")
+			}
+		}
+		if _, duplicate := items[item.ID]; duplicate {
+			return nil, fmt.Errorf("duplicate cloud inventory identity")
+		}
+		items[item.ID] = item
+	}
+	return items, nil
 }
 
 func order(kind string) int {

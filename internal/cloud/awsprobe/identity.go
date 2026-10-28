@@ -4,8 +4,12 @@ package awsprobe
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -32,6 +36,9 @@ func (client *Client) Config(ctx context.Context, connection cloud.Connection, i
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("provider subject token unavailable")
 	}
+	if !expectedToken(token.Status.Token, identity.Issuer, identity.Namespace, identity.ServiceAccounts[service]) {
+		return aws.Config{}, fmt.Errorf("provider token issuer, audience or subject differs from approved identity")
+	}
 	configuration := aws.Config{Region: connection.Region, Credentials: aws.AnonymousCredentials{}}
 	session, err := sts.NewFromConfig(configuration).AssumeRoleWithWebIdentity(ctx, &sts.AssumeRoleWithWebIdentityInput{RoleArn: aws.String(role), RoleSessionName: aws.String("keldock-observation"), WebIdentityToken: aws.String(token.Status.Token), DurationSeconds: aws.Int32(900)})
 	if err != nil {
@@ -49,6 +56,27 @@ func (client *Client) Config(ctx context.Context, connection cloud.Connection, i
 		return aws.Config{}, fmt.Errorf("unexpected AWS account")
 	}
 	return configuration, nil
+}
+
+// Kubernetes supplies the claims; AWS still verifies the JWT signature and role trust.
+func expectedToken(token, issuer, namespace, serviceAccount string) bool {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 || issuer == "" {
+		return false
+	}
+	data, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	var claims struct {
+		Issuer   string   `json:"iss"`
+		Subject  string   `json:"sub"`
+		Audience []string `json:"aud"`
+	}
+	if json.Unmarshal(data, &claims) != nil {
+		return false
+	}
+	return claims.Issuer == issuer && claims.Subject == "system:serviceaccount:"+namespace+":"+serviceAccount && slices.Contains(claims.Audience, "sts.amazonaws.com")
 }
 
 // Reason bounds failure details and never reflects request bodies, tokens or SDK logs.

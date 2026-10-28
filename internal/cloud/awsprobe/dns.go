@@ -2,6 +2,7 @@ package awsprobe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,6 +13,9 @@ import (
 
 // DNSState distinguishes a foreign record from an owned but not yet converged claim.
 type DNSState struct{ MarkerExists, AddressExists, Owned, Converged bool }
+
+// ErrDNSOwnership distinguishes observed foreign records from an unavailable AWS read.
+var ErrDNSOwnership = errors.New("DNS ownership conflict")
 
 // DNS reads only the exact selected hosted zone and refuses foreign owners or unmarked addresses.
 func DNS(ctx context.Context, configuration aws.Config, zone, hostname, marker, address string) (DNSState, error) {
@@ -52,7 +56,7 @@ func DNS(ctx context.Context, configuration aws.Config, zone, hostname, marker, 
 		}
 	}
 	if (state.MarkerExists && !state.Owned) || (state.AddressExists && !state.Owned) {
-		return state, fmt.Errorf("DNSOwnershipConflict")
+		return state, ErrDNSOwnership
 	}
 	return state, nil
 }

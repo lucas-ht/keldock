@@ -92,6 +92,7 @@ type BackupBinding struct {
 	RestoreName       string              `json:"restoreName"`
 	RestoreGeneration int64               `json:"restoreGeneration,omitempty"`
 	BaseAttempt       int64               `json:"baseAttempt"`
+	SchedulePaused    bool                `json:"schedulePaused"`
 }
 
 // ArchiveGeneration is immutable retained history; the writer receives only the current prefix.

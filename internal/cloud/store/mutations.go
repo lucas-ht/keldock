@@ -144,7 +144,7 @@ func connection(ctx context.Context, tx pgx.Tx, policy cloud.Policy, id string) 
 
 func count(ctx context.Context, tx pgx.Tx, policy cloud.Policy, kind, profile string, limit int) error {
 	var total int
-	err := tx.QueryRow(ctx, `SELECT count(*) FROM cloud_intents WHERE organization_id=$1 AND project_id=$2 AND kind=$3 AND ($4='' OR intent->'resource'->>'profile'=$4 OR intent->'domain'->'request'->>'profile'=$4)`, policy.OrganizationID, policy.ProjectID, kind, profile).Scan(&total)
+	err := tx.QueryRow(ctx, `SELECT count(*) FROM cloud_intents WHERE organization_id=$1 AND project_id=$2 AND kind=$3 AND intent->>'action' != 'disconnected' AND ($4='' OR intent->'resource'->>'profile'=$4 OR intent->'domain'->'request'->>'profile'=$4)`, policy.OrganizationID, policy.ProjectID, kind, profile).Scan(&total)
 	if err != nil {
 		return err
 	}

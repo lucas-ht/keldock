@@ -97,6 +97,9 @@ func (store *Store) Observe(ctx context.Context, organization, cluster string, r
 			return postgres.ErrStale
 		}
 		item.Action = "disconnected"
+		if item.Resource != nil {
+			item.Resource.Owner = "external"
+		}
 	}
 	item.Observation = &report
 	delete(report.Details, "adoptionReviewHash")

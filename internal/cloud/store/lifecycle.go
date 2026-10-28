@@ -27,6 +27,12 @@ func (store *Store) lifecycle(ctx context.Context, tx pgx.Tx, policy cloud.Polic
 		return item, postgres.ErrStale
 	}
 	switch request.Action {
+	case "pause-schedule", "resume-schedule":
+		if item.Backup == nil || item.Action != "reconcile" {
+			return item, access.ErrInvalid
+		}
+		item.Backup.SchedulePaused = request.Action == "pause-schedule"
+		request.Action = "reconcile"
 	case "adopt":
 		if !principal.IsAdmin() || item.Resource == nil || item.Resource.Mode != "connect" || item.Resource.Owner != "external" || item.Action != "reconcile" || item.Observation == nil || item.Observation.State != "ready" || time.Since(item.Observation.ObservedAt) > 2*time.Minute {
 			return item, access.ErrDenied
@@ -53,6 +59,9 @@ func (store *Store) lifecycle(ctx context.Context, tx pgx.Tx, policy cloud.Polic
 			return item, access.ErrInvalid
 		}
 		if item.Backup != nil {
+			if item.Backup.BaseAttempt < 1 {
+				item.Backup.BaseAttempt = 1
+			}
 			if item.Backup.BaseAttempt >= 10 {
 				return item, access.ErrInvalid
 			}
@@ -105,7 +114,7 @@ func (store *Store) lifecycle(ctx context.Context, tx pgx.Tx, policy cloud.Polic
 			request.Action = "retain"
 		}
 	case "refresh":
-		if item.Resource == nil {
+		if item.Resource == nil || item.Action == "disconnected" {
 			return item, access.ErrInvalid
 		}
 		conn, err := connection(ctx, tx, policy, item.Resource.ConnectionID)
@@ -132,6 +141,10 @@ func (store *Store) lifecycle(ctx context.Context, tx pgx.Tx, policy cloud.Polic
 	if item.Binding != nil {
 		item.Binding.Generation = item.Generation
 		item.Binding.State = "pending"
+	}
+	if item.Domain != nil {
+		item.Domain.Generation = item.Generation
+		item.Domain.State = "pending"
 	}
 	return item, nil
 }

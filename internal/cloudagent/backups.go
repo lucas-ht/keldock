@@ -21,26 +21,21 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 	binding := *item.Backup
 	target, ok := policy.Databases[binding.DatabaseID]
 	resource := items[binding.ResourceID]
-	if !ok || target != binding.Database || resource.Resource == nil || resource.Resource.Kind != cloud.BackupStore || resource.Resource.ConnectionGeneration != conn.Generation || resource.Resource.ConnectionID != conn.ID {
+	if !ok || resource.Resource == nil || !validBackup(policy, conn, item, *resource.Resource) {
 		return evidence("failed", "BackupOutsideLocalPolicy", conn.Generation)
 	}
 	source, err := driver.Dynamic.Resource(cnpgClusters).Namespace(target.Namespace).Get(ctx, target.Name, metav1.GetOptions{})
-	if err != nil {
-		return unavailable(err, conn.Generation)
-	}
-	if string(source.GetUID()) != target.UID {
-		return evidence("failed", "BackupSourceIdentityChanged", conn.Generation)
-	}
-	image, _, _ := unstructured.NestedString(source.Object, "spec", "imageName")
-	if image != target.Image {
-		return evidence("failed", "BackupSourceImageRequiresReview", conn.Generation)
+	sourceValid := err == nil && string(source.GetUID()) == target.UID
+	if sourceValid {
+		image, _, _ := unstructured.NestedString(source.Object, "spec", "imageName")
+		sourceValid = image == target.Image
 	}
 	configuration, err := driver.Probe.Config(ctx, conn, policy.Identities[conn.IdentityRef], "iam")
 	if err != nil {
 		return unavailable(err, conn.Generation)
 	}
 	profile := policy.Profiles[resource.Resource.Profile]
-	active := item.Action == "reconcile"
+	active := item.Action == "reconcile" && conn.Enabled && resource.Resource.ConnectionGeneration == conn.Generation && sourceValid
 	writerSA, _ := cloud.WorkloadIdentity(conn, profile, item.ID, "writer")
 	restoreSA, _ := cloud.WorkloadIdentity(conn, profile, item.ID, "restore")
 	writer := crossplane.ConsumerRole{ID: writerSA, ARN: binding.WriterRoleARN, Namespace: target.Namespace, ServiceAccount: target.Name, Profile: resource.Resource.Profile}
@@ -68,7 +63,15 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 		}
 	}
 	if !active {
-		return driver.disconnectBackup(ctx, conn, item, source)
+		if !sourceValid {
+			return evidence("failed", "BackupSourceChanged_ConsumerGrantsRemoved", conn.Generation)
+		}
+		report := driver.disconnectBackup(ctx, conn, item, source)
+		if report.State == "retained" && item.Action == "reconcile" {
+			report.State = "suspended"
+			report.Reason = "BackupAuthoritySuspended"
+		}
+		return report
 	}
 	objectName := fmt.Sprintf("archive-%s-g%d", cloud.ShortIdentity(item.ID), binding.ArchiveGeneration)
 	store := objectStore(target.Namespace, objectName, resource.Resource.ExternalName, binding.ArchivePrefix)
@@ -94,7 +97,7 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 	if err := driver.applyBackupObject(ctx, base, item.ID); err != nil {
 		return unavailable(err, conn.Generation)
 	}
-	schedule := map[string]any{"apiVersion": "postgresql.cnpg.io/v1", "kind": "ScheduledBackup", "metadata": map[string]any{"name": "schedule-" + cloud.ShortIdentity(item.ID), "namespace": target.Namespace}, "spec": map[string]any{"schedule": "0 " + binding.Schedule, "backupOwnerReference": "self", "cluster": map[string]string{"name": target.Name}, "method": "plugin", "pluginConfiguration": map[string]string{"name": "barman-cloud.cloudnative-pg.io"}}}
+	schedule := map[string]any{"apiVersion": "postgresql.cnpg.io/v1", "kind": "ScheduledBackup", "metadata": map[string]any{"name": "schedule-" + cloud.ShortIdentity(item.ID), "namespace": target.Namespace}, "spec": map[string]any{"schedule": "0 " + binding.Schedule, "suspend": binding.SchedulePaused, "backupOwnerReference": "self", "cluster": map[string]string{"name": target.Name}, "method": "plugin", "pluginConfiguration": map[string]string{"name": "barman-cloud.cloudnative-pg.io"}}}
 	if err := driver.applyBackupObject(ctx, schedule, item.ID); err != nil {
 		return unavailable(err, conn.Generation)
 	}
@@ -109,7 +112,16 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 	report.Details["baseBackup"] = phase
 	wal := conditionTrue(source, "ContinuousArchiving")
 	report.Details["walHealthy"] = fmt.Sprint(wal)
-	if phase == "completed" && wal {
+	storageIdentity, err := driver.Probe.Config(ctx, conn, policy.Identities[conn.IdentityRef], "s3")
+	if err != nil {
+		return unavailable(err, conn.Generation)
+	}
+	archiveWAL, err := awsprobe.ArchiveWAL(ctx, storageIdentity, conn, resource.Resource.ExternalName, binding.ArchivePrefix, target.Name)
+	if err != nil {
+		return unavailable(err, conn.Generation)
+	}
+	report.Details["archiveWalObjectsSeen"] = fmt.Sprint(archiveWAL)
+	if phase == "completed" && wal && archiveWAL {
 		report.State = "ready"
 		report.Reason = "BaseBackupAndWALReported"
 	}

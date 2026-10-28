@@ -2,7 +2,7 @@ package cloudagent
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/lucas-ht/keldock/internal/cloud"
@@ -27,45 +27,16 @@ func (driver *Driver) domain(ctx context.Context, policy cloud.Policy, conn clou
 	}
 	profile := policy.Profiles[claim.Request.Profile]
 	state, err := awsprobe.DNS(ctx, configuration, profile.HostedZoneID, claim.Request.Hostname, crossplane.DNSMarker(claim), profile.IngressIPv4)
-	if err != nil {
+	if err != nil && (item.Action != "disconnect" || !errors.Is(err, awsprobe.ErrDNSOwnership)) {
 		return evidence("failed", "DNSOwnershipOrObservationConflict", conn.Generation)
 	}
 	if item.Action == "disconnect" || item.Action == "disconnected" {
-		if state.AddressExists && !state.Converged {
-			return evidence("failed", "DNSOwnershipDriftRequiresReview", conn.Generation)
-		}
-		if !state.MarkerExists && !state.AddressExists {
-			return evidence("disconnected", "OwnedDNSRecordsRemoved", conn.Generation)
-		}
-		if !state.Owned {
-			return evidence("failed", "DNSOwnershipConflict", conn.Generation)
-		}
-		// Keep the marker until the owned address has actually disappeared.
-		target := address
-		if !state.AddressExists {
-			target = marker
-		}
-		data, _ := json.Marshal(target)
-		object := &unstructured.Unstructured{}
-		_ = json.Unmarshal(data, &object.Object)
-		client := driver.resource(object)
-		actual, err := client.Get(ctx, object.GetName(), metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			return evidence("failed", "DNSProjectionMissingRequiresReview", conn.Generation)
-		}
-		if err != nil {
-			return unavailable(err, conn.Generation)
-		}
-		if actual.GetLabels()["keldock.io/cloud-intent"] != object.GetLabels()["keldock.io/cloud-intent"] {
-			return evidence("failed", "DNSProjectionOwnerConflict", conn.Generation)
-		}
-		uid := actual.GetUID()
-		if err := client.Delete(ctx, object.GetName(), metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}}); err != nil && !apierrors.IsNotFound(err) {
-			return unavailable(err, conn.Generation)
-		}
-		return evidence("reconciling", "RemovingOwnedDNSRecords", conn.Generation)
+		return driver.disconnectDomain(ctx, conn, item, marker, address, state)
 	}
 	if item.Action == "retain" {
+		if err := driver.suspendDomain(ctx, policy, conn, claim); err != nil {
+			return unavailable(err, conn.Generation)
+		}
 		return evidence("retained", "DNSClaimRetained", conn.Generation)
 	}
 	markerObject, err := driver.apply(ctx, marker, item.Generation)
@@ -105,7 +76,7 @@ func (driver *Driver) domain(ctx context.Context, policy cloud.Policy, conn clou
 		if !ok {
 			continue
 		}
-		if condition["type"] == "Ready" && condition["status"] == "True" {
+		if condition["type"] == "Ready" && condition["status"] == "True" && condition["observedGeneration"] == certificate.GetGeneration() {
 			report.State = "ready"
 			report.Reason = "OwnedDNSAndCertificateVerified"
 			report.Details["certificateReady"] = "true"

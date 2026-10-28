@@ -82,7 +82,7 @@ func (policy Policy) ValidateDomain(connection Connection, request DomainRequest
 	if !connection.Enabled || !ok || profile.Kind != Domain || !slices.Contains(connection.Profiles, request.Profile) || request.ConnectionID != connection.ID || !v1.ValidName(request.EnvironmentID) || !v1.ValidName(request.Component) || strings.HasPrefix(request.Component, "keldock-") || request.Generation < 1 || !validHostname(request.Hostname) {
 		return fmt.Errorf("domain request outside enabled profile and exact consumer")
 	}
-	if request.Hostname != profile.ParentDomain && !strings.HasSuffix(request.Hostname, "."+profile.ParentDomain) {
+	if !strings.HasSuffix(request.Hostname, "."+profile.ParentDomain) {
 		return fmt.Errorf("hostname outside operator-owned parent domain")
 	}
 	return nil

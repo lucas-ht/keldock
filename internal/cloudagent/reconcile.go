@@ -40,6 +40,9 @@ func (driver *Driver) Reconcile(ctx context.Context, policy cloud.Policy, item c
 		return evidence("failed", "ConnectionUnavailable", 0)
 	}
 	conn := *parent.Connection
+	if item.Action == "disconnected" {
+		return evidence("disconnected", "PreviouslyDisconnected", conn.Generation)
+	}
 	if policy.ValidateConnection(conn) != nil {
 		return evidence("failed", "ConnectionOutsideLocalPolicy", conn.Generation)
 	}
@@ -51,6 +54,14 @@ func (driver *Driver) Reconcile(ctx context.Context, policy cloud.Policy, item c
 		}
 		if item.Binding != nil {
 			return driver.binding(ctx, policy, conn, item, items, true)
+		}
+		if item.Domain != nil {
+			if err := driver.suspendDomain(ctx, policy, conn, *item.Domain); err != nil {
+				return unavailable(err, conn.Generation)
+			}
+		}
+		if item.Backup != nil {
+			return driver.backup(ctx, policy, conn, item, items)
 		}
 		return evidence("suspended", "ReconciliationSuspended_AWSAuthorityRequiresOperatorRevocation", conn.Generation)
 	}

@@ -2,6 +2,7 @@ package cloudagent
 
 import (
 	"context"
+	"slices"
 
 	"github.com/lucas-ht/keldock/internal/cloud"
 	"github.com/lucas-ht/keldock/internal/cloud/crossplane"
@@ -25,7 +26,8 @@ func (driver *Driver) backupPodReady(ctx context.Context, target cloud.DatabaseT
 			continue
 		}
 		identity, plugin, ready := false, false, false
-		for _, container := range pod.Spec.Containers {
+		containers := append(slices.Clone(pod.Spec.Containers), pod.Spec.InitContainers...)
+		for _, container := range containers {
 			if container.Image == image {
 				plugin = true
 			}
