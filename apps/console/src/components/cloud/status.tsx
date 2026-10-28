@@ -3,8 +3,15 @@ import { Badge } from "@/components/ui/badge";
 
 export function CloudState({ item, now }: { item: CloudIntent; now: number }) {
   const stale =
-    item.observation && now - Date.parse(item.observation.observedAt) > 120_000;
-  const state = stale ? "stale" : item.state;
+    item.action === "reconcile" &&
+    item.observation &&
+    now - Date.parse(item.observation.observedAt) > 120_000;
+  const state =
+    item.connection && !item.connection.enabled
+      ? "disabled"
+      : stale
+        ? "stale"
+        : item.state;
   const tone =
     state === "ready"
       ? "success"
@@ -14,6 +21,7 @@ export function CloudState({ item, now }: { item: CloudIntent; now: number }) {
           ? "warning"
           : "neutral";
   const labels: Record<string, string> = {
+    disabled: "Disabled",
     ready: "Ready",
     failed: "Failed",
     pending: "Queued",
@@ -36,6 +44,8 @@ export function CloudState({ item, now }: { item: CloudIntent; now: number }) {
 }
 
 export function cloudReason(item: CloudIntent) {
+  if (item.connection && !item.connection.enabled)
+    return "Connection disabled. New cloud requests are blocked; AWS authority is managed separately.";
   const reason = item.observation?.reason;
   const labels: Record<string, string> = {
     ExactProviderIdentitiesVerified:

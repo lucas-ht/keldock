@@ -105,7 +105,7 @@ export function DomainForm({
             spellCheck={false}
           />
           <FieldDescription>
-            Use a hostname within {profile?.parentDomain}.
+            Use a hostname below {profile?.parentDomain}.
           </FieldDescription>
         </Field>
         <Field>

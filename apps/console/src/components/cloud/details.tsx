@@ -9,6 +9,7 @@ export function CloudFacts({
   item: CloudIntent;
   project: string;
 }) {
+  const disconnected = item.action === "disconnected";
   const details = item.observation?.details ?? {};
   return (
     <dl className="resource-facts">
@@ -94,7 +95,9 @@ export function CloudFacts({
           <div>
             <dt>Application access</dt>
             <dd>
-              Verify in the running application after its identity rollout
+              {disconnected
+                ? "Grant removed"
+                : "Verify in the running application after its identity rollout"}
             </dd>
           </div>
         </>
@@ -103,15 +106,33 @@ export function CloudFacts({
         <>
           <div>
             <dt>Ownership marker</dt>
-            <dd>{item.domain.ownershipVerified ? "Verified" : "Pending"}</dd>
+            <dd>
+              {disconnected
+                ? "Released"
+                : item.domain.ownershipVerified
+                  ? "Verified"
+                  : "Pending"}
+            </dd>
           </div>
           <div>
             <dt>DNS record</dt>
-            <dd>{item.domain.dnsReady ? "Converged" : "Pending"}</dd>
+            <dd>
+              {disconnected
+                ? "Owned records removed"
+                : item.domain.dnsReady
+                  ? "Converged"
+                  : "Pending"}
+            </dd>
           </div>
           <div>
             <dt>Certificate</dt>
-            <dd>{item.domain.certificateReady ? "Ready" : "Pending"}</dd>
+            <dd>
+              {disconnected
+                ? "No longer tracked"
+                : item.domain.certificateReady
+                  ? "Ready"
+                  : "Pending"}
+            </dd>
           </div>
         </>
       )}
@@ -125,7 +146,11 @@ export function CloudFacts({
             <dt>Schedule (UTC)</dt>
             <dd>
               <code>{item.backup.schedule}</code> ·{" "}
-              {item.backup.schedulePaused ? "Paused" : "Enabled"}
+              {disconnected
+                ? "Stopped"
+                : item.backup.schedulePaused
+                  ? "Paused"
+                  : "Enabled"}
             </dd>
           </div>
           <div>
@@ -135,17 +160,26 @@ export function CloudFacts({
           <div>
             <dt>Base backup / WAL</dt>
             <dd>
-              {details.baseBackup ?? "Pending"} /{" "}
-              {details.walHealthy === "true" ? "Healthy" : "Pending"}
+              {disconnected
+                ? "Archiving stopped"
+                : (details.baseBackup ?? "Pending")}{" "}
+              /{" "}
+              {disconnected
+                ? "Archives retained"
+                : details.walHealthy === "true"
+                  ? "Healthy"
+                  : "Pending"}
             </dd>
           </div>
           {item.backup.restoreGeneration ? (
             <div>
               <dt>Isolated restore</dt>
               <dd>
-                {details.restoreReady === "true"
-                  ? "Database ready; verify application data"
-                  : "Pending"}
+                {disconnected
+                  ? "No longer tracked after disconnect"
+                  : details.restoreReady === "true"
+                    ? "Database ready; verify application data"
+                    : "Pending"}
               </dd>
             </div>
           ) : null}
