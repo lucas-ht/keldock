@@ -125,6 +125,9 @@ func (store *Store) SelectRelease(ctx context.Context, scope v1.Scope, actor str
 
 func selectDeployment(ctx context.Context, tx pgx.Tx, scope v1.Scope, release string, selection compiler.Selection) (v1.Receipt, error) {
 	var receipt v1.Receipt
+	if err := inheritCapabilities(ctx, tx, scope, selection.EnvironmentID, &selection); err != nil {
+		return receipt, err
+	}
 	data, err := json.Marshal(selection)
 	if err != nil {
 		return receipt, err

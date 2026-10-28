@@ -37,6 +37,12 @@ func (registrar *Registrar) register(ctx context.Context, selection compiler.Sel
 	if err := registrar.apply(ctx, workload, selection.EnvironmentID, selection.Generation); err != nil {
 		return fmt.Errorf("register workload identity: %w", err)
 	}
+	for _, binding := range selection.Cloud {
+		identity := map[string]any{"apiVersion": "v1", "kind": "ServiceAccount", "metadata": metadata(binding.ServiceAccount, selection), "automountServiceAccountToken": false, "imagePullSecrets": pullSecrets}
+		if err := registrar.apply(ctx, identity, selection.EnvironmentID, selection.Generation); err != nil {
+			return fmt.Errorf("register cloud consumer identity: %w", err)
+		}
+	}
 	objects := []any{
 		&corev1.ServiceAccount{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"}, ObjectMeta: metadata("reconciler", selection), AutomountServiceAccountToken: ptr.To(false)},
 		&rbacv1.Role{TypeMeta: metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"}, ObjectMeta: metadata("keldock-reconciler", selection), Rules: []rbacv1.PolicyRule{
@@ -53,6 +59,14 @@ func (registrar *Registrar) register(ctx context.Context, selection compiler.Sel
 			Spec: networkingv1.NetworkPolicySpec{PodSelector: metav1.LabelSelector{}, PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress, networkingv1.PolicyTypeEgress}}},
 		&corev1.ResourceQuota{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ResourceQuota"}, ObjectMeta: metadata("keldock-limits", selection), Spec: corev1.ResourceQuotaSpec{Hard: corev1.ResourceList{
 			corev1.ResourceRequestsCPU: resource.MustParse("2"), corev1.ResourceRequestsMemory: resource.MustParse("2Gi"), corev1.ResourceLimitsCPU: resource.MustParse("8"), corev1.ResourceLimitsMemory: resource.MustParse("4Gi"), corev1.ResourcePods: resource.MustParse("64")}}},
+	}
+	certificateAuthority, err := registrar.certificateAuthority(ctx, selection)
+	if err != nil {
+		return err
+	}
+	if certificateAuthority {
+		role := objects[1].(*rbacv1.Role)
+		role.Rules = append(role.Rules, rbacv1.PolicyRule{APIGroups: []string{"cert-manager.io"}, Resources: []string{"certificates"}, Verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}})
 	}
 	for _, object := range objects {
 		if err := registrar.apply(ctx, object, selection.EnvironmentID, selection.Generation); err != nil {

@@ -99,6 +99,18 @@ func (store *Store) Observe(ctx context.Context, organization, cluster string, r
 		item.Action = "disconnected"
 	}
 	item.Observation = &report
+	delete(report.Details, "adoptionReviewHash")
+	if item.Resource != nil && item.Resource.Mode == "connect" && report.State == "ready" {
+		if grant, ok := policy.Adoptions[item.Resource.ExternalName]; ok {
+			conn, err := get(ctx, tx, policy.Scope, item.Resource.ConnectionID)
+			if err != nil {
+				return err
+			}
+			if hash, err := cloud.AdoptionReview(*item.Resource, *conn.Connection, report.Details["inventoryHash"], grant); err == nil {
+				report.Details["adoptionReviewHash"] = hash
+			}
+		}
+	}
 	item.State = report.State
 	item.UpdatedAt = time.Now().UTC()
 	if item.Resource != nil {
@@ -115,6 +127,9 @@ func (store *Store) Observe(ctx context.Context, organization, cluster string, r
 		item.Domain.ObservedAt = &report.ObservedAt
 	}
 	if err := save(ctx, tx, policy, item); err != nil {
+		return err
+	}
+	if err := refreshPlacements(ctx, tx, policy); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

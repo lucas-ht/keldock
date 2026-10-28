@@ -58,6 +58,9 @@ func pod(name string, component v1.Component, image string, selection Selection)
 func workload(name string, component v1.Component, image string, selection Selection) []any {
 	metadata := metav1.ObjectMeta{Name: name, Namespace: selection.Namespace, Labels: labels(name, selection), Annotations: map[string]string{"keldock.io/deployment": selection.DeploymentID}}
 	template := pod(name, component, image, selection)
+	if binding, ok := selection.Cloud[name]; ok {
+		bindCloudPod(&template, binding)
+	}
 	var result []any
 	switch component.Kind {
 	case "http", "worker":
@@ -83,6 +86,14 @@ func workload(name string, component v1.Component, image string, selection Selec
 			Spec: networkingv1.IngressSpec{IngressClassName: ptr.To("traefik"), Rules: []networkingv1.IngressRule{{Host: selection.Hostname, IngressRuleValue: networkingv1.IngressRuleValue{
 				HTTP: &networkingv1.HTTPIngressRuleValue{Paths: []networkingv1.HTTPIngressPath{{Path: "/", PathType: ptr.To(networkingv1.PathTypePrefix), Backend: networkingv1.IngressBackend{
 					Service: &networkingv1.IngressServiceBackend{Name: name, Port: networkingv1.ServiceBackendPort{Name: "http"}}}}}}}}}}})
+	}
+	for _, route := range selection.Domains {
+		if route.Component != name {
+			continue
+		}
+		meta := metadata
+		meta.Name = DomainIngressName(route.ID)
+		result = append(result, certificate(route, selection), &networkingv1.Ingress{TypeMeta: metav1.TypeMeta{APIVersion: "networking.k8s.io/v1", Kind: "Ingress"}, ObjectMeta: meta, Spec: networkingv1.IngressSpec{IngressClassName: ptr.To("traefik"), TLS: []networkingv1.IngressTLS{{Hosts: []string{route.Hostname}, SecretName: CertificateName(route.ID)}}, Rules: []networkingv1.IngressRule{{Host: route.Hostname, IngressRuleValue: networkingv1.IngressRuleValue{HTTP: &networkingv1.HTTPIngressRuleValue{Paths: []networkingv1.HTTPIngressPath{{Path: "/", PathType: ptr.To(networkingv1.PathTypePrefix), Backend: networkingv1.IngressBackend{Service: &networkingv1.IngressServiceBackend{Name: name, Port: networkingv1.ServiceBackendPort{Name: "http"}}}}}}}}}}})
 	}
 	return result
 }

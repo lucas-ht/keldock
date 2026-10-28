@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -25,6 +27,62 @@ func (store *Store) lifecycle(ctx context.Context, tx pgx.Tx, policy cloud.Polic
 		return item, postgres.ErrStale
 	}
 	switch request.Action {
+	case "adopt":
+		if !principal.IsAdmin() || item.Resource == nil || item.Resource.Mode != "connect" || item.Resource.Owner != "external" || item.Action != "reconcile" || item.Observation == nil || item.Observation.State != "ready" || time.Since(item.Observation.ObservedAt) > 2*time.Minute {
+			return item, access.ErrDenied
+		}
+		conn, err := connection(ctx, tx, policy, item.Resource.ConnectionID)
+		if err != nil {
+			return item, err
+		}
+		grant, ok := policy.Adoptions[item.Resource.ExternalName]
+		if !ok {
+			return item, access.ErrDenied
+		}
+		review, err := cloud.AdoptionReview(*item.Resource, *conn.Connection, item.Observation.Details["inventoryHash"], grant)
+		if err != nil || review != request.ReviewHash {
+			return item, postgres.ErrStale
+		}
+		item.Resource.AdoptionGeneration = item.Generation
+		item.Resource.AdoptionReviewHash = review
+		item.Resource.Mode = "adopt"
+		item.Resource.Owner = "crossplane"
+		request.Action = "reconcile"
+	case "retry":
+		if item.Connection != nil || item.Action != "reconcile" {
+			return item, access.ErrInvalid
+		}
+		if item.Backup != nil {
+			if item.Backup.BaseAttempt >= 10 {
+				return item, access.ErrInvalid
+			}
+			item.Backup.BaseAttempt++
+		}
+		request.Action = "reconcile"
+	case "next-archive":
+		if item.Backup == nil || item.Action != "reconcile" || len(item.Backup.Archives) >= 16 {
+			return item, access.ErrInvalid
+		}
+		item.Backup.ArchiveGeneration++
+		item.Backup.BaseAttempt = 1
+		item.Backup.ArchivePrefix = fmt.Sprintf("archives/%s/generation-%d", strings.TrimPrefix(item.ID, "cloud-"), item.Backup.ArchiveGeneration)
+		item.Backup.Archives = append(item.Backup.Archives, cloud.ArchiveGeneration{Generation: item.Backup.ArchiveGeneration, Prefix: item.Backup.ArchivePrefix})
+		request.Action = "reconcile"
+	case "restore":
+		if item.Backup == nil || item.Action != "reconcile" || item.Backup.RestoreGeneration != 0 {
+			return item, access.ErrInvalid
+		}
+		found := false
+		for _, archive := range item.Backup.Archives {
+			if archive.Generation == request.ArchiveGeneration {
+				found = true
+			}
+		}
+		if !found {
+			return item, access.ErrInvalid
+		}
+		item.Backup.RestoreGeneration = request.ArchiveGeneration
+		request.Action = "reconcile"
 	case "suspend":
 		if item.Connection == nil || !principal.IsAdmin() {
 			return item, access.ErrDenied

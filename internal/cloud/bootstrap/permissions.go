@@ -1,5 +1,7 @@
 package bootstrap
 
+import "github.com/lucas-ht/keldock/internal/cloud"
+
 func storagePolicy(spec Spec) map[string]any {
 	bucket := "arn:aws:s3:::" + spec.DataPrefix() + "*"
 	locationKey := "StringEquals"
@@ -8,13 +10,14 @@ func storagePolicy(spec Spec) map[string]any {
 	}
 	return document([]any{
 		statement("Allow", []string{"s3:CreateBucket"}, []string{bucket}, map[string]any{"Condition": map[string]any{locationKey: map[string]string{"s3:LocationConstraint": spec.Region}}}),
-		statement("Allow", []string{"s3:GetBucket*", "s3:GetEncryptionConfiguration", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:ListBucket", "s3:ListBucketVersions", "s3:PutBucketTagging", "s3:PutBucketVersioning", "s3:PutEncryptionConfiguration", "s3:PutBucketPublicAccessBlock", "s3:PutBucketOwnershipControls", "s3:DeleteBucket"}, []string{bucket}, nil),
+		statement("Allow", []string{"s3:GetBucket*", "s3:GetAccelerateConfiguration", "s3:GetEncryptionConfiguration", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:ListBucket", "s3:ListBucketVersions", "s3:PutBucketTagging", "s3:PutBucketVersioning", "s3:PutEncryptionConfiguration", "s3:PutBucketPublicAccessBlock", "s3:PutBucketOwnershipControls", "s3:DeleteBucket"}, []string{bucket}, nil),
 	})
 }
 
 func identityPolicy(spec Spec) map[string]any {
 	roles := "arn:aws:iam::" + spec.Account + ":role" + spec.ConsumerPath() + "*"
 	return document([]any{
+		statement("Allow", []string{"iam:GetRole"}, []string{"arn:aws:iam::" + spec.Account + ":role/" + cloud.ConsumerRolePrefix(cloud.Profile{RolePath: spec.ConsumerPath()}) + "*"}, nil),
 		statement("Allow", []string{"iam:CreateRole", "iam:PutRolePermissionsBoundary"}, []string{roles}, map[string]any{"Condition": map[string]any{"StringEquals": map[string]string{"iam:PermissionsBoundary": spec.BoundaryARN()}}}),
 		statement("Allow", []string{"iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:UpdateRole", "iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:TagRole", "iam:UntagRole", "iam:DeleteRole"}, []string{roles}, nil),
 		statement("Allow", []string{"iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListPolicyVersions"}, []string{spec.BoundaryARN()}, nil),

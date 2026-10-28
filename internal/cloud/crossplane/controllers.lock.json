@@ -1,0 +1,44 @@
+{
+  "artifacts": {
+    "crossplane": {
+      "version": "2.4.3",
+      "url": "https://charts.crossplane.io/stable/crossplane-2.4.3.tgz",
+      "file": "crossplane-2.4.3.tgz",
+      "sha256": "eeace77cdc7e727a8400cb7a229e290d4d28dd730b440a1b06fb6df4569cd33c"
+    },
+    "cert-manager": {
+      "version": "1.21.3",
+      "url": "https://github.com/cert-manager/cert-manager/releases/download/v1.21.3/cert-manager.yaml",
+      "file": "cert-manager.yaml",
+      "sha256": "c04a51295adda2b1a775146751f973e787190778c7f35180861d9678876e5c74"
+    },
+    "cnpg": {
+      "version": "1.30.1",
+      "url": "https://github.com/cloudnative-pg/cloudnative-pg/releases/download/v1.30.1/cnpg-1.30.1.yaml",
+      "file": "cnpg.yaml",
+      "sha256": "37237f145d8138256ea25ae830f87759255665ff08f8d552fdd8224a5ec032fb"
+    },
+    "barman": {
+      "version": "0.15.1",
+      "url": "https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.15.1/manifest.yaml",
+      "file": "barman.yaml",
+      "sha256": "8f377ff4a7d0d3f74fc64b0f7ac4f449fc38ca9e83a40107cca2f9315a9bd920"
+    }
+  },
+  "images": {
+    "xpkg.crossplane.io/crossplane/crossplane:v2.4.3": "xpkg.crossplane.io/crossplane/crossplane:v2.4.3@sha256:1c66261d805a73cade46e2ac94b665c73aebd4a00844de5fcae4bcadaa2be638",
+    "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
+    "ghcr.io/cloudnative-pg/plugin-barman-cloud:v0.15.1": "ghcr.io/cloudnative-pg/plugin-barman-cloud:v0.15.1@sha256:c75acad19a36e8176cfe2885761ff1b836c6ef977d7257e298c99a28b5c302ef",
+    "quay.io/jetstack/cert-manager-controller:v1.21.3": "quay.io/jetstack/cert-manager-controller:v1.21.3@sha256:9f4f96a33c7774cef24466fcd85031997531a03a8d117f151126baa8d1290dcc",
+    "quay.io/jetstack/cert-manager-cainjector:v1.21.3": "quay.io/jetstack/cert-manager-cainjector:v1.21.3@sha256:083d0e906f8eb44e255fe4ff817ae54e49f9ed82e22f1011bb4e9e4f4b8a641f",
+    "quay.io/jetstack/cert-manager-webhook:v1.21.3": "quay.io/jetstack/cert-manager-webhook:v1.21.3@sha256:055ac8e9de6a0ba6763794838fe38944acc650f68ebe1b01dd8be079e580f458",
+    "ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie": "ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131",
+    "ghcr.io/cloudnative-pg/plugin-barman-cloud-sidecar:v0.15.1": "ghcr.io/cloudnative-pg/plugin-barman-cloud-sidecar:v0.15.1@sha256:2287a793a804db751edd0d07d44cd549e357677e98a800eb12e2cf7c0d53f9b0"
+  },
+  "packages": {
+    "provider-family-aws": "xpkg.upbound.io/crossplane-contrib/provider-family-aws@sha256:4b426b75d6c2b5cbc3270b4c2423c81cfd0ce7e7a7f5f02d2af305ba76944505",
+    "provider-aws-s3": "xpkg.upbound.io/crossplane-contrib/provider-aws-s3@sha256:6440c4f796517174438ac55a693e244936c4d24c41e38cbad98365e7ff6b893c",
+    "provider-aws-iam": "xpkg.upbound.io/crossplane-contrib/provider-aws-iam@sha256:7b10066a13b381930abfcf7ac289f985cb651603bc28751f401c633c46e6b6af",
+    "provider-aws-route53": "xpkg.upbound.io/crossplane-contrib/provider-aws-route53@sha256:22bf132aebb2eca26cf4132dd1785dd6d19e67e63e6cfaff2c9660dae9a41530"
+  }
+}

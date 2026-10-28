@@ -51,6 +51,8 @@ type Resource struct {
 	Mode                 string               `json:"mode"`
 	ExternalName         string               `json:"externalName"`
 	Owner                string               `json:"owner"`
+	AdoptionGeneration   int64                `json:"adoptionGeneration,omitempty"`
+	AdoptionReviewHash   string               `json:"adoptionReviewHash,omitempty"`
 	State                string               `json:"state"`
 	Observation          *ResourceObservation `json:"observation,omitempty"`
 }

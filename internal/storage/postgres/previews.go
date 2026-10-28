@@ -35,7 +35,7 @@ func (store *Store) RecordPullRequest(ctx context.Context, scope v1.Scope, deliv
 	}
 	defer rollback(ctx, tx)
 	var repository int64
-	if err := tx.QueryRow(ctx, `SELECT repository_id FROM projects WHERE organization_id=$1 AND id=$2 FOR SHARE`, scope.OrganizationID, scope.ProjectID).Scan(&repository); err != nil || repository != update.RepositoryID {
+	if err := tx.QueryRow(ctx, `SELECT repository_id FROM projects WHERE organization_id=$1 AND id=$2 FOR UPDATE`, scope.OrganizationID, scope.ProjectID).Scan(&repository); err != nil || repository != update.RepositoryID {
 		return false, ErrDenied
 	}
 	result, err := tx.Exec(ctx, `INSERT INTO webhook_deliveries VALUES ($1,$2,$3,$4,now()) ON CONFLICT DO NOTHING`, delivery, scope.OrganizationID, scope.ProjectID, payloadHash)
@@ -109,6 +109,9 @@ func closePreviews(ctx context.Context, tx pgx.Tx, scope v1.Scope, number int64)
 }
 
 func deleteSelection(ctx context.Context, tx pgx.Tx, environment string, generation int64, reason string) error {
+	if err := detachCloudConsumers(ctx, tx, environment); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `UPDATE environments SET deleted=true,generation=$2,deletion_reason=$3 WHERE id=$1`, environment, generation, reason); err != nil {
 		return err
 	}
@@ -130,8 +133,20 @@ func (store *Store) ExpirePreviews(ctx context.Context, organization string) err
 	}
 	defer rollback(ctx, tx)
 	var id string
+	var project string
 	var generation int64
-	err = tx.QueryRow(ctx, `SELECT id,generation FROM environments WHERE organization_id=$1 AND pull_request>0 AND expires_at<=now() AND NOT deleted ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1`, organization).Scan(&id, &generation)
+	err = tx.QueryRow(ctx, `SELECT id,project_id FROM environments WHERE organization_id=$1 AND pull_request>0 AND expires_at<=now() AND NOT deleted ORDER BY id LIMIT 1`, organization).Scan(&id, &project)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var locked string
+	if err := tx.QueryRow(ctx, `SELECT id FROM projects WHERE organization_id=$1 AND id=$2 FOR UPDATE`, organization, project).Scan(&locked); err != nil {
+		return err
+	}
+	err = tx.QueryRow(ctx, `SELECT generation FROM environments WHERE id=$1 AND NOT deleted AND expires_at<=now() FOR UPDATE SKIP LOCKED`, id).Scan(&generation)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}

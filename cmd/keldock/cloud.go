@@ -8,11 +8,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/lucas-ht/keldock/internal/cloud"
 	"github.com/lucas-ht/keldock/internal/cloud/bootstrap"
+	"github.com/lucas-ht/keldock/internal/cloud/crossplane"
 )
 
 // cloudCommand prepares an offline, immutable review bundle; planning never applies AWS changes.
 func cloudCommand(args []string) error {
+	if len(args) > 0 && args[0] == "runtime" {
+		return cloudRuntime(args[1:])
+	}
 	if len(args) == 0 || args[0] != "plan" {
 		return fmt.Errorf("usage: keldock cloud plan --config <private-spec.json> --out <new-directory>")
 	}
@@ -55,4 +60,38 @@ func cloudCommand(args []string) error {
 	}
 	fmt.Printf("Prepared AWS review bundle %s\nAccount %s; region %s; child domain %s\nSHA256 %s\nNo AWS changes applied.\n", *directory, spec.Account, spec.Region, spec.Domain, fingerprint)
 	return nil
+}
+
+func cloudRuntime(args []string) error {
+	flags := flag.NewFlagSet("cloud runtime", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	config := flags.String("config", "", "owner-only cloud policy")
+	output := flags.String("out", "", "new runtime manifest")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 || *output == "" {
+		return fmt.Errorf("usage: keldock cloud runtime --config <policy.json> --out <new-file.json>")
+	}
+	var policy cloud.Policy
+	if err := readSettings(*config, &policy); err != nil {
+		return err
+	}
+	objects, err := crossplane.Runtime(policy)
+	if err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(map[string]any{"apiVersion": "v1", "kind": "List", "items": objects}, "", "  ")
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(*output, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(append(data, '\n')); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
 }

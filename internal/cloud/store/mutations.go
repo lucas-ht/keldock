@@ -67,7 +67,13 @@ func (store *Store) Mutate(ctx context.Context, principal access.Principal, proj
 	if err != nil {
 		return receipt, err
 	}
+	if err := tx.QueryRow(ctx, `UPDATE projects SET cloud_revision=cloud_revision+1 WHERE organization_id=$1 AND id=$2 RETURNING cloud_revision`, policy.OrganizationID, policy.ProjectID).Scan(&item.Revision); err != nil {
+		return receipt, err
+	}
 	if err := save(ctx, tx, policy, item); err != nil {
+		return receipt, err
+	}
+	if err := refreshPlacements(ctx, tx, policy); err != nil {
 		return receipt, err
 	}
 	receipt = cloud.Receipt{APIVersion: v1.APIVersion, ID: item.ID, Generation: item.Generation, StatusURL: "/v1/projects/" + project + "/cloud/intents/" + item.ID}

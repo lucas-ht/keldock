@@ -25,6 +25,9 @@ func (store *Store) connection(ctx context.Context, tx pgx.Tx, policy cloud.Poli
 	if err == nil && (current.Connection == nil || request.Generation != current.Generation+1) {
 		return item, postgres.ErrStale
 	}
+	if err == nil && (request.Account != current.Connection.Account || request.Region != current.Connection.Region || request.IdentityRef != current.Connection.IdentityRef) {
+		return item, postgres.ErrConflict
+	}
 	if errors.Is(err, postgres.ErrNotFound) && request.Generation != 1 {
 		return item, postgres.ErrStale
 	}

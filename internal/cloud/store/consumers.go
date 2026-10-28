@@ -112,7 +112,7 @@ func (store *Store) backup(ctx context.Context, tx pgx.Tx, policy cloud.Policy, 
 	if v1.DecodeJSON(data, &request) != nil || !v1.ValidName(request.DatabaseID) || len(request.Schedule) > 64 {
 		return item, access.ErrInvalid
 	}
-	if _, err := cron.ParseStandard(request.Schedule); err != nil {
+	if _, err := cron.ParseStandard(request.Schedule); err != nil || len(strings.Fields(request.Schedule)) != 5 {
 		return item, access.ErrInvalid
 	}
 	target, ok := policy.Databases[request.DatabaseID]
@@ -136,6 +136,7 @@ func (store *Store) backup(ctx context.Context, tx pgx.Tx, policy cloud.Policy, 
 	profile := policy.Profiles[resource.Resource.Profile]
 	_, writer := cloud.WorkloadIdentity(*conn.Connection, profile, item.ID, "writer")
 	_, reader := cloud.WorkloadIdentity(*conn.Connection, profile, item.ID, "restore")
-	item.Backup = &cloud.BackupBinding{ResourceID: resource.ID, DatabaseID: request.DatabaseID, Database: target, ArchiveGeneration: 1, ArchivePrefix: "archives/" + strings.TrimPrefix(item.ID, "cloud-") + "/generation-1", WriterRoleARN: writer, RestoreRoleARN: reader, Schedule: request.Schedule}
+	prefix := "archives/" + strings.TrimPrefix(item.ID, "cloud-") + "/generation-1"
+	item.Backup = &cloud.BackupBinding{ResourceID: resource.ID, DatabaseID: request.DatabaseID, Database: target, ArchiveGeneration: 1, ArchivePrefix: prefix, WriterRoleARN: writer, RestoreRoleARN: reader, Schedule: request.Schedule, Archives: []cloud.ArchiveGeneration{{Generation: 1, Prefix: prefix}}, RestoreName: "restore-" + cloud.ShortIdentity(item.ID), BaseAttempt: 1}
 	return item, nil
 }

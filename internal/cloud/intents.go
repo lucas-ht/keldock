@@ -14,6 +14,7 @@ type Intent struct {
 	ID          string         `json:"id"`
 	Kind        string         `json:"kind"`
 	Generation  int64          `json:"generation"`
+	Revision    int64          `json:"revision"`
 	Action      string         `json:"action"`
 	State       string         `json:"state"`
 	Connection  *Connection    `json:"connection,omitempty"`
@@ -38,9 +39,10 @@ type Evidence struct {
 
 // Mutation carries optimistic concurrency and a receipt identity for lifecycle actions.
 type Mutation struct {
-	Generation int64  `json:"generation"`
-	Action     string `json:"action"`
-	ReviewHash string `json:"reviewHash,omitempty"`
+	Generation        int64  `json:"generation"`
+	Action            string `json:"action"`
+	ReviewHash        string `json:"reviewHash,omitempty"`
+	ArchiveGeneration int64  `json:"archiveGeneration,omitempty"`
 }
 
 // Receipt identifies an accepted cloud revision, not successful external effects.
@@ -60,9 +62,13 @@ type Command struct {
 
 // DatabaseTarget is an operator-supplied CNPG cluster with explicitly delegated backup fields.
 type DatabaseTarget struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	UID       string `json:"uid"`
+	Namespace        string `json:"namespace"`
+	Name             string `json:"name"`
+	UID              string `json:"uid"`
+	RestoreNamespace string `json:"restoreNamespace"`
+	Image            string `json:"image"`
+	StorageClass     string `json:"storageClass"`
+	StorageSize      string `json:"storageSize"`
 }
 
 // BackupRequest binds a retained store to an approved existing database.
@@ -74,12 +80,22 @@ type BackupRequest struct {
 
 // BackupBinding keeps source identity, archive generation and restore authority explicit.
 type BackupBinding struct {
-	ResourceID        string         `json:"resourceId"`
-	DatabaseID        string         `json:"databaseId"`
-	Database          DatabaseTarget `json:"database"`
-	ArchiveGeneration int64          `json:"archiveGeneration"`
-	ArchivePrefix     string         `json:"archivePrefix"`
-	WriterRoleARN     string         `json:"writerRoleArn"`
-	RestoreRoleARN    string         `json:"restoreRoleArn"`
-	Schedule          string         `json:"schedule"`
+	ResourceID        string              `json:"resourceId"`
+	DatabaseID        string              `json:"databaseId"`
+	Database          DatabaseTarget      `json:"database"`
+	ArchiveGeneration int64               `json:"archiveGeneration"`
+	ArchivePrefix     string              `json:"archivePrefix"`
+	WriterRoleARN     string              `json:"writerRoleArn"`
+	RestoreRoleARN    string              `json:"restoreRoleArn"`
+	Schedule          string              `json:"schedule"`
+	Archives          []ArchiveGeneration `json:"archives"`
+	RestoreName       string              `json:"restoreName"`
+	RestoreGeneration int64               `json:"restoreGeneration,omitempty"`
+	BaseAttempt       int64               `json:"baseAttempt"`
+}
+
+// ArchiveGeneration is immutable retained history; the writer receives only the current prefix.
+type ArchiveGeneration struct {
+	Generation int64  `json:"generation"`
+	Prefix     string `json:"prefix"`
 }

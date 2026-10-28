@@ -59,6 +59,9 @@ func save(ctx context.Context, tx pgx.Tx, policy cloud.Policy, item cloud.Intent
 	if item.Domain != nil && item.Action != "disconnected" {
 		externalKey = item.Domain.Request.Hostname
 	}
+	if item.Resource != nil && item.Resource.Owner == "crossplane" {
+		externalKey = "s3:" + item.Resource.ExternalName
+	}
 	_, err = tx.Exec(ctx, `INSERT INTO cloud_intents(organization_id,project_id,cluster_id,id,kind,generation,intent,external_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8)
 ON CONFLICT(organization_id,project_id,id) DO UPDATE SET generation=EXCLUDED.generation,intent=EXCLUDED.intent,external_key=EXCLUDED.external_key,updated_at=now()`, policy.OrganizationID, policy.ProjectID, policy.ClusterID, item.ID, item.Kind, item.Generation, data, externalKey)
 	var constraint interface{ SQLState() string }

@@ -55,6 +55,7 @@ type Policy struct {
 	Profiles    map[string]Profile         `json:"profiles"`
 	Databases   map[string]DatabaseTarget  `json:"databases,omitempty"`
 	EgressCIDRs []string                   `json:"egressCidrs,omitempty"`
+	Adoptions   map[string]AdoptionGrant   `json:"adoptions,omitempty"`
 	Development bool                       `json:"development"`
 }
 
@@ -76,8 +77,22 @@ func (policy Policy) Validate() error {
 	if len(policy.Databases) > 16 || len(policy.EgressCIDRs) > 128 {
 		return fmt.Errorf("cloud database and network grants must be bounded")
 	}
+	if len(policy.Adoptions) > 50 {
+		return fmt.Errorf("adoption grants exceed supported bound")
+	}
+	for bucket, grant := range policy.Adoptions {
+		allowed := false
+		for _, profile := range policy.Profiles {
+			if slices.Contains(profile.ExistingBuckets, bucket) {
+				allowed = true
+			}
+		}
+		if !allowed || !validBucket(bucket) || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(grant.InventoryHash) || grant.ReleaseRef == "" || len(grant.ReleaseRef) > 256 || strings.ContainsAny(grant.ReleaseRef, "\n\r") || grant.ReleasedAt.IsZero() {
+			return fmt.Errorf("adoption requires an exact existing bucket and operator writer-release inventory")
+		}
+	}
 	for name, database := range policy.Databases {
-		if !v1.ValidName(name) || !v1.ValidName(database.Namespace) || !v1.ValidName(database.Name) || len(database.UID) < 8 || len(database.UID) > 64 {
+		if !v1.ValidName(name) || !v1.ValidName(database.Namespace) || !v1.ValidName(database.Name) || len(database.UID) < 8 || len(database.UID) > 64 || !v1.ValidName(database.RestoreNamespace) || database.Namespace == database.RestoreNamespace || !v1.ValidName(database.StorageClass) || len(database.StorageSize) > 16 || database.StorageSize == "" || !regexp.MustCompile(`^[a-z0-9][a-z0-9./:_-]+@sha256:[a-f0-9]{64}$`).MatchString(database.Image) {
 			return fmt.Errorf("backup source requires an exact operator-approved database identity")
 		}
 	}

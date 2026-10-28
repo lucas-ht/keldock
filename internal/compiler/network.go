@@ -26,6 +26,13 @@ func networkPolicy(name string, app v1.Application, selection Selection) *networ
 		policy.Spec.Egress = append(policy.Spec.Egress, networkingv1.NetworkPolicyEgressRule{To: []networkingv1.NetworkPolicyPeer{{
 			PodSelector: &metav1.LabelSelector{MatchLabels: labels(target, selection)}}}, Ports: []networkingv1.NetworkPolicyPort{{Protocol: ptr.To(corev1.ProtocolTCP), Port: ptr.To(intstr.FromInt32(app.Components[target].Port))}}})
 	}
+	if binding, ok := selection.Cloud[name]; ok {
+		peers := []networkingv1.NetworkPolicyPeer{}
+		for _, cidr := range binding.EgressCIDRs {
+			peers = append(peers, networkingv1.NetworkPolicyPeer{IPBlock: &networkingv1.IPBlock{CIDR: cidr}})
+		}
+		policy.Spec.Egress = append(policy.Spec.Egress, networkingv1.NetworkPolicyEgressRule{To: peers, Ports: []networkingv1.NetworkPolicyPort{{Protocol: ptr.To(corev1.ProtocolTCP), Port: ptr.To(intstr.FromInt32(443))}}})
+	}
 	names := make([]string, 0, len(app.Components))
 	for source := range app.Components {
 		names = append(names, source)

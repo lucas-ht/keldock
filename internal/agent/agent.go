@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -80,86 +79,7 @@ func (agent Agent) project(ctx context.Context, desired v1.ProjectedDeployment) 
 	return agent.Client.Observe(ctx, report)
 }
 
-// Run retains workloads on disconnection and cancels in-flight work when the lease is lost.
+// Run serializes workload projections under the enrolled registrar lease.
 func (agent Agent) Run(ctx context.Context) error {
-	defer func() {
-		release, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := agent.Client.Release(release); err != nil {
-			slog.Debug("agent lease release unavailable", "error", err)
-		}
-	}()
-	for ctx.Err() == nil {
-		err := agent.connected(ctx)
-		if ctx.Err() != nil {
-			return nil
-		}
-		var status APIError
-		if errors.As(err, &status) && (status.Status == http.StatusUnauthorized || status.Status == http.StatusForbidden) {
-			return err
-		}
-		slog.Warn("agent connection/reconciliation retry", "error", err)
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-time.After(2 * time.Second):
-		}
-	}
-	return nil
-}
-
-func (agent Agent) connected(parent context.Context) (result error) {
-	ctx, cancel := context.WithCancel(parent)
-	defer cancel()
-	if err := agent.Client.RefreshCredential(ctx); err != nil {
-		return err
-	}
-	if err := agent.Client.Heartbeat(ctx); err != nil {
-		return err
-	}
-	heartbeat := make(chan error, 1)
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				heartbeat <- ctx.Err()
-				return
-			case <-ticker.C:
-				if err := agent.Client.Heartbeat(ctx); err != nil {
-					heartbeat <- err
-					cancel()
-					return
-				}
-			}
-		}
-	}()
-	defer func() {
-		cancel()
-		cause := <-heartbeat
-		if errors.Is(result, context.Canceled) && parent.Err() == nil {
-			result = cause
-		}
-	}()
-	for {
-		err := agent.Client.RefreshCredential(ctx)
-		if err == nil {
-			err = agent.Step(ctx)
-		}
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		if err != nil {
-			var status APIError
-			if errors.As(err, &status) && (status.Status == http.StatusUnauthorized || status.Status == http.StatusForbidden) {
-				return err
-			}
-			slog.Warn("agent observation/reconciliation retry", "error", err)
-		}
-		select {
-		case <-ctx.Done():
-		case <-time.After(2 * time.Second):
-		}
-	}
+	return (SessionLoop{Client: agent.Client, Step: agent.Step}).Run(ctx)
 }

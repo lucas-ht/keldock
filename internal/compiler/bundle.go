@@ -28,6 +28,9 @@ func Render(input v1.SubmitRelease, selection Selection) (Bundle, error) {
 	if err := input.Validate(); err != nil {
 		return result, err
 	}
+	if err := validateCloud(input.Definition, selection); err != nil {
+		return result, err
+	}
 	if !v1.ValidName(selection.Namespace) || !v1.ValidName(selection.EnvironmentID) ||
 		!v1.ValidName(selection.DeploymentID) || selection.Generation < 1 {
 		return result, fmt.Errorf("trusted selection requires valid identities and generation")

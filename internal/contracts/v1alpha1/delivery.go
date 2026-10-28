@@ -7,11 +7,13 @@ import (
 
 // Placement is trusted environment configuration resolved by the control plane.
 type Placement struct {
-	EnvironmentID string `json:"environmentId"`
-	DeploymentID  string `json:"deploymentId"`
-	Generation    int64  `json:"generation"`
-	Namespace     string `json:"namespace"`
-	Hostname      string `json:"hostname,omitempty"`
+	EnvironmentID string                   `json:"environmentId"`
+	DeploymentID  string                   `json:"deploymentId"`
+	Generation    int64                    `json:"generation"`
+	Namespace     string                   `json:"namespace"`
+	Hostname      string                   `json:"hostname,omitempty"`
+	Cloud         map[string]WorkloadCloud `json:"cloud,omitempty"`
+	Domains       []DomainRoute            `json:"domains,omitempty"`
 }
 
 // ProjectedDeployment is the approved, version-bound input for a scoped cluster agent.
