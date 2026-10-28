@@ -10,7 +10,7 @@ func storagePolicy(spec Spec) map[string]any {
 	}
 	return document([]any{
 		statement("Allow", []string{"s3:CreateBucket"}, []string{bucket}, map[string]any{"Condition": map[string]any{locationKey: map[string]string{"s3:LocationConstraint": spec.Region}}}),
-		statement("Allow", []string{"s3:GetBucket*", "s3:GetAccelerateConfiguration", "s3:GetEncryptionConfiguration", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:ListBucket", "s3:ListBucketVersions", "s3:PutBucketTagging", "s3:PutBucketVersioning", "s3:PutEncryptionConfiguration", "s3:PutBucketPublicAccessBlock", "s3:PutBucketOwnershipControls", "s3:DeleteBucket"}, []string{bucket}, nil),
+		statement("Allow", []string{"s3:GetBucket*", "s3:GetAccelerateConfiguration", "s3:GetEncryptionConfiguration", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:ListBucket", "s3:ListBucketVersions", "s3:PutBucketVersioning", "s3:PutEncryptionConfiguration", "s3:PutBucketPublicAccessBlock", "s3:PutBucketOwnershipControls"}, []string{bucket}, nil),
 	})
 }
 

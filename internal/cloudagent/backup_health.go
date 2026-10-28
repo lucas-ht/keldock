@@ -5,7 +5,9 @@ import (
 	"slices"
 
 	"github.com/lucas-ht/keldock/internal/cloud"
+	"github.com/lucas-ht/keldock/internal/cloud/awsprobe"
 	"github.com/lucas-ht/keldock/internal/cloud/crossplane"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -49,4 +51,25 @@ func (driver *Driver) backupPodReady(ctx context.Context, target cloud.DatabaseT
 		}
 	}
 	return false, nil
+}
+
+// CNPG updates plugin RBAC asynchronously when the archive ObjectStore changes.
+// Do not consume a one-shot base-backup attempt before that exact grant exists.
+func (driver *Driver) backupAuthorityReady(ctx context.Context, policy cloud.Policy, conn cloud.Connection, binding cloud.BackupBinding, bucket, object string) (bool, error) {
+	target := binding.Database
+	for _, permission := range []struct{ verb, subresource string }{{"get", ""}, {"update", "status"}} {
+		review, err := driver.Kubernetes.AuthorizationV1().SubjectAccessReviews().Create(ctx, &authorizationv1.SubjectAccessReview{Spec: authorizationv1.SubjectAccessReviewSpec{User: "system:serviceaccount:" + target.Namespace + ":" + target.Name, ResourceAttributes: &authorizationv1.ResourceAttributes{Namespace: target.Namespace, Group: "barmancloud.cnpg.io", Resource: "objectstores", Name: object, Verb: permission.verb, Subresource: permission.subresource}}}, metav1.CreateOptions{})
+		if err != nil {
+			return false, err
+		}
+		if !review.Status.Allowed {
+			return false, nil
+		}
+	}
+	identity := cloud.IdentityProfile{Account: conn.Account, Issuer: policy.Identities[conn.IdentityRef].Issuer, Namespace: target.Namespace, Roles: map[string]string{"s3": binding.WriterRoleARN}, ServiceAccounts: map[string]string{"s3": target.Name}}
+	config, err := driver.Probe.Config(ctx, conn, identity, "s3")
+	if err != nil {
+		return false, err
+	}
+	return true, awsprobe.ArchiveAccess(ctx, config, conn, bucket, binding.ArchivePrefix)
 }

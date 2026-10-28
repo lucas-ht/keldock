@@ -43,7 +43,9 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 	if active {
 		writer.Grants = []crossplane.Grant{{Bucket: resource.Resource.ExternalName, Prefix: binding.ArchivePrefix + "/", Access: "read-write"}}
 		for _, archive := range binding.Archives {
-			reader.Grants = append(reader.Grants, crossplane.Grant{Bucket: resource.Resource.ExternalName, Prefix: archive.Prefix + "/", Access: "read"})
+			if archive.Generation == binding.RestoreGeneration {
+				reader.Grants = append(reader.Grants, crossplane.Grant{Bucket: resource.Resource.ExternalName, Prefix: archive.Prefix + "/", Access: "read"})
+			}
 		}
 	}
 	for _, role := range []crossplane.ConsumerRole{writer, reader} {
@@ -88,6 +90,13 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 	if !rolledOut {
 		return evidence("reconciling", "BackupIdentityAndPluginRollingOut", conn.Generation)
 	}
+	authorized, err := driver.backupAuthorityReady(ctx, policy, conn, binding, resource.Resource.ExternalName, objectName)
+	if err != nil {
+		return unavailable(err, conn.Generation)
+	}
+	if !authorized {
+		return evidence("reconciling", "BackupObjectStoreAccessConverging", conn.Generation)
+	}
 	attempt := binding.BaseAttempt
 	if attempt < 1 {
 		attempt = 1
@@ -121,6 +130,10 @@ func (driver *Driver) backup(ctx context.Context, policy cloud.Policy, conn clou
 		return unavailable(err, conn.Generation)
 	}
 	report.Details["archiveWalObjectsSeen"] = fmt.Sprint(archiveWAL)
+	if phase == "failed" {
+		report.State = "failed"
+		report.Reason = "BaseBackupFailed_RetryRequired"
+	}
 	if phase == "completed" && wal && archiveWAL {
 		report.State = "ready"
 		report.Reason = "BaseBackupAndWALReported"

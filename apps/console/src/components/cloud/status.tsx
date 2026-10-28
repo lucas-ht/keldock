@@ -49,6 +49,10 @@ export function cloudReason(item: CloudIntent) {
     CertificatePending: "DNS is configured; waiting for the certificate.",
     BaseBackupAndWALReported:
       "Base backup completed and WAL archiving is healthy.",
+    BaseBackupFailed_RetryRequired:
+      "The base backup failed. Review database and archive access, then retry.",
+    BackupObjectStoreAccessConverging:
+      "Waiting for the database’s permission to use its selected archive.",
     IsolatedRestorePending: "The isolated restore is running.",
     ExternalStorageRetained: "Cloud storage and its data are retained.",
     ConnectionRevisionRequiresExplicitRefresh:

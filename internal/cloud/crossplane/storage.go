@@ -28,6 +28,14 @@ func Storage(policy cloud.Policy, connection cloud.Connection, resource cloud.Re
 		return nil, fmt.Errorf("existing bucket lacks an operator grant")
 	}
 	bucket := managed(policy, connection, resource.ID, "Bucket", "s3.aws.m.upbound.io", "s3", resource.ExternalName, parameters, observe)
+	// Terraform's Bucket updater can remove unspecified tags. Bucket identity is
+	// immutable here; only the separate security resources may update AWS fields.
+	// Adoption observes the existing bucket and must never recreate it if missing.
+	policies := []string{"Observe"}
+	if resource.Mode == "create" && !observe {
+		policies = append(policies, "Create")
+	}
+	bucket["spec"].(map[string]any)["managementPolicies"] = policies
 	result := []map[string]any{bucket}
 	if observe {
 		return result, nil
@@ -38,7 +46,7 @@ func Storage(policy cloud.Policy, connection cloud.Connection, resource cloud.Re
 		"BucketVersioning":                        {"versioningConfiguration": map[string]string{"status": "Enabled"}},
 		"BucketPublicAccessBlock":                 {"blockPublicAcls": true, "ignorePublicAcls": true, "blockPublicPolicy": true, "restrictPublicBuckets": true},
 		"BucketOwnershipControls":                 {"rule": map[string]string{"objectOwnership": "BucketOwnerEnforced"}},
-		"BucketServerSideEncryptionConfiguration": {"rule": []any{map[string]any{"applyServerSideEncryptionByDefault": map[string]string{"sseAlgorithm": "AES256"}, "bucketKeyEnabled": false}}},
+		"BucketServerSideEncryptionConfiguration": {"rule": []any{map[string]any{"applyServerSideEncryptionByDefault": map[string]string{"sseAlgorithm": "AES256"}}}},
 	}
 	for _, kind := range []string{"BucketVersioning", "BucketPublicAccessBlock", "BucketOwnershipControls", "BucketServerSideEncryptionConfiguration"} {
 		parameters := controls[kind]

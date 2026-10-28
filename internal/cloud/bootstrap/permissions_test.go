@@ -9,7 +9,7 @@ import (
 func TestProviderAuthorityCannotModifyTrustRootsOrReadData(t *testing.T) {
 	spec := testSpec()
 	storage, _ := json.Marshal(storagePolicy(spec))
-	for _, forbidden := range []string{"s3:GetObject", "s3:PutObject", "s3:DeleteObject", spec.IssuerBucket(), `"Resource":"*"`} {
+	for _, forbidden := range []string{"s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:DeleteBucket", "s3:PutBucketTagging", spec.IssuerBucket(), `"Resource":"*"`} {
 		if strings.Contains(string(storage), forbidden) {
 			t.Fatalf("storage provider has forbidden authority %s", forbidden)
 		}

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -39,7 +40,7 @@ func (client *Client) Config(ctx context.Context, connection cloud.Connection, i
 	if !expectedToken(token.Status.Token, identity.Issuer, identity.Namespace, identity.ServiceAccounts[service]) {
 		return aws.Config{}, fmt.Errorf("provider token issuer, audience or subject differs from approved identity")
 	}
-	configuration := aws.Config{Region: connection.Region, Credentials: aws.AnonymousCredentials{}}
+	configuration := aws.Config{Region: connection.Region, Credentials: aws.AnonymousCredentials{}, HTTPClient: &http.Client{Timeout: 20 * time.Second}}
 	session, err := sts.NewFromConfig(configuration).AssumeRoleWithWebIdentity(ctx, &sts.AssumeRoleWithWebIdentityInput{RoleArn: aws.String(role), RoleSessionName: aws.String("keldock-observation"), WebIdentityToken: aws.String(token.Status.Token), DurationSeconds: aws.Int32(900)})
 	if err != nil {
 		return aws.Config{}, err

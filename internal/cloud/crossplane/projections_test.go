@@ -35,7 +35,7 @@ func TestStorageCannotDeleteDataOrTakeUnmanagedFields(t *testing.T) {
 	for _, object := range objects {
 		spec := object["spec"].(map[string]any)
 		for _, action := range spec["managementPolicies"].([]string) {
-			if action == "Delete" || action == "*" {
+			if action == "Delete" || action == "*" || (object["kind"] == "Bucket" && action == "Update") {
 				t.Fatal("storage projection may delete data")
 			}
 		}
