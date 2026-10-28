@@ -3,10 +3,20 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
 )
+
+// previewExpiry uses the same clock that enforces expiry, after any lock wait.
+func previewExpiry(ctx context.Context, tx pgx.Tx, seconds int64) (*time.Time, error) {
+	var value time.Time
+	if err := tx.QueryRow(ctx, `SELECT clock_timestamp()+$1::double precision*interval '1 second'`, seconds).Scan(&value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
 
 func environmentKind(pull int64) string {
 	if pull > 0 {

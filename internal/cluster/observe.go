@@ -42,9 +42,31 @@ func selectedFailure(object *unstructured.Unstructured, digest string) bool {
 		if !ok || entry["type"] != "Ready" || entry["status"] != "False" || entry["observedGeneration"] != object.GetGeneration() {
 			continue
 		}
-		return entry["reason"] == "HealthCheckFailed" || entry["reason"] == "BuildFailed" || entry["reason"] == "ReconciliationFailed"
+		if entry["reason"] == "HealthCheckFailed" || entry["reason"] == "BuildFailed" || entry["reason"] == "ReconciliationFailed" {
+			return true
+		}
 	}
-	return false
+	// A failed attempt can be replaced by Progressing as soon as Flux retries.
+	// Preserve only the latest completed attempt for this exact source revision
+	// and already-observed specification; an older failure cannot taint a new one.
+	state, _, _ := condition(object)
+	observed, _, _ := unstructured.NestedInt64(object.Object, "status", "observedGeneration")
+	if state == "True" || observed != object.GetGeneration() {
+		return false
+	}
+	history, _, _ := unstructured.NestedSlice(object.Object, "status", "history")
+	if len(history) == 0 {
+		return false
+	}
+	latest, ok := history[0].(map[string]any)
+	if !ok {
+		return false
+	}
+	revision, _, _ := unstructured.NestedString(latest, "metadata", "revision")
+	if !strings.HasSuffix(revision, digest) {
+		return false
+	}
+	return latest["lastReconciledStatus"] == "HealthCheckFailed" || latest["lastReconciledStatus"] == "BuildFailed" || latest["lastReconciledStatus"] == "ReconciliationFailed"
 }
 
 // Observe requires the selected artifact and current controller generations, never old readiness.
@@ -100,6 +122,11 @@ func (registrar *Registrar) Observe(ctx context.Context, selection compiler.Sele
 			if !health.Ready && selectedFailure(object, digest) {
 				report.State = "failed"
 				report.Reason = reason
+				if reason == "Progressing" || reason == "ProgressingWithRetry" {
+					report.Reason = "SelectedRevisionFailedRetrying"
+					health.Reason = report.Reason
+					health.Message = "The last completed reconciliation of this selected revision failed; Flux is retrying."
+				}
 			}
 		}
 		if !health.Ready && report.State != "failed" {

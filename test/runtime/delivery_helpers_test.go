@@ -134,6 +134,8 @@ func waitState(t *testing.T, ctx context.Context, registrar *cluster.Registrar, 
 	if err != nil {
 		t.Fatal(err)
 	}
+	status, statusErr := kube(t, ctx, "get", "kustomization", "keldock-api", "-n", selection.Namespace, "-o", "jsonpath={.status}")
+	t.Logf("API controller status at failed wait: %s (%v)", status, statusErr)
 	t.Fatalf("wanted %s; observation=%s error=%v", state, data, lastError)
 	return last
 }

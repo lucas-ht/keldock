@@ -111,8 +111,10 @@ func (store *Store) SelectRelease(ctx context.Context, scope v1.Scope, actor str
 	}
 	var expires *time.Time
 	if pull > 0 {
-		value := time.Now().UTC().Add(time.Duration(policy.TTLSeconds) * time.Second)
-		expires = &value
+		expires, err = previewExpiry(ctx, tx, policy.TTLSeconds)
+		if err != nil {
+			return receipt, err
+		}
 	}
 	if _, err = tx.Exec(ctx, `UPDATE environments SET generation=$2,deleted=false,deletion_reason='',expires_at=$3,application=$4 WHERE id=$1`, request.EnvironmentID, selection.Generation, expires, input.Definition.Name); err != nil {
 		return receipt, err

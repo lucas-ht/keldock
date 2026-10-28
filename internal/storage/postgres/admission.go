@@ -149,8 +149,10 @@ func (store *Store) admit(ctx context.Context, scope v1.Scope, actor, key, hostn
 	}
 	var expires *time.Time
 	if input.Source.PullRequest > 0 {
-		value := time.Now().UTC().Add(time.Duration(policy.TTLSeconds) * time.Second)
-		expires = &value
+		expires, err = previewExpiry(ctx, tx, policy.TTLSeconds)
+		if err != nil {
+			return receipt, err
+		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE environments SET generation=$2,latest_run_id=$3,latest_run_attempt=$4,expires_at=$5,application=$6 WHERE id=$1`, environmentID, generation, input.Source.RunID, input.Source.RunAttempt, expires, input.Definition.Name); err != nil {
 		return receipt, err
