@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { fileURLToPath } from "node:url";
 
 const upstream = process.env.KELDOCK_API_ORIGIN ?? "http://127.0.0.1:3801";
 const parsed = new URL(upstream);
@@ -15,6 +16,9 @@ if (
 }
 
 const config: NextConfig = {
+  distDir: process.env.KELDOCK_NEXT_DIST_DIR ?? ".next",
+  output: "standalone",
+  outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
   poweredByHeader: false,
   devIndicators: false,
   async rewrites() {

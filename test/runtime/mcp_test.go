@@ -48,6 +48,7 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	if err := fixture.store.Observe(ctx, fixture.scope.OrganizationID, "keldock-m1", report); err != nil {
 		t.Fatal(err)
 	}
+	seedMCPResource(t, ctx, fixture, receipt.EnvironmentID)
 	session, oauth := sdkMCP(t, fixture, ctx, mcpidentity.ReadScope)
 	defer func() { _ = session.Close() }()
 	var refreshes int
@@ -56,10 +57,10 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	}
 
 	tools, err := session.ListTools(ctx, nil)
-	if err != nil || len(tools.Tools) != 9 {
+	if err != nil || len(tools.Tools) != 10 {
 		t.Fatalf("tools: %v %v", tools, err)
 	}
-	allowed := map[string]bool{"list_projects": true, "list_environments": true, "get_environment": true, "get_operation": true, "get_diagnostics": true, "list_releases": true, "deploy_release": false, "retry_operation": false, "cancel_operation": false}
+	allowed := map[string]bool{"list_resources": true, "list_projects": true, "list_environments": true, "get_environment": true, "get_operation": true, "get_diagnostics": true, "list_releases": true, "deploy_release": false, "retry_operation": false, "cancel_operation": false}
 	for _, tool := range tools.Tools {
 		read, exists := allowed[tool.Name]
 		if !exists || tool.Annotations == nil || tool.Annotations.ReadOnlyHint != read {
@@ -68,6 +69,7 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	}
 	for _, call := range []*mcp.CallToolParams{
 		{Name: "list_projects", Arguments: map[string]any{}},
+		{Name: "list_resources", Arguments: map[string]any{"projectId": "sample"}},
 		{Name: "list_releases", Arguments: map[string]any{"projectId": "sample"}},
 		{Name: "list_environments", Arguments: map[string]any{"projectId": "sample"}},
 		{Name: "get_environment", Arguments: map[string]any{"projectId": "sample", "environmentId": receipt.EnvironmentID}},
@@ -88,6 +90,16 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 		if call.Name == "get_diagnostics" && (!strings.Contains(string(data), `"stale":true`) || !strings.Contains(string(data), "[redacted]")) {
 			t.Fatalf("diagnostic freshness/redaction absent: %s", data)
 		}
+		if call.Name == "list_resources" {
+			for _, private := range []string{"private-source-identity", "private-archive-reference", "private-database-namespace"} {
+				if strings.Contains(string(data), private) {
+					t.Fatal("MCP exposed private resource configuration")
+				}
+			}
+			if !strings.Contains(string(data), `"kind":"postgresql"`) || !strings.Contains(string(data), `"walHealthy":true`) || !strings.Contains(string(data), `"stale":true`) {
+				t.Fatal("MCP omitted retained resource recovery/freshness evidence")
+			}
+		}
 	}
 	denied, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "list_environments", Arguments: map[string]any{"projectId": "restricted"}})
 	if err != nil || !denied.IsError {
@@ -96,6 +108,10 @@ func TestAuthenticatedMCPDiscoveryScopesRedactionAndRevocation(t *testing.T) {
 	encoded, _ := json.Marshal(denied)
 	if !strings.Contains(string(encoded), `"code":"denied"`) {
 		t.Fatal("MCP error lacked structured classification")
+	}
+	deniedResources, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "list_resources", Arguments: map[string]any{"projectId": "restricted"}})
+	if err != nil || !deniedResources.IsError {
+		t.Fatal("MCP resource read crossed project scope")
 	}
 	tokenSource, err := oauth.TokenSource(ctx)
 	if err != nil {

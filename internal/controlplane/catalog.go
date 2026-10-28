@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/lucas-ht/keldock/internal/access"
 	"github.com/lucas-ht/keldock/internal/inspection"
@@ -91,6 +92,14 @@ func (api *API) installation(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	cloudProjects := []string{}
+	databaseProjects := []string{}
+	if api.Databases != nil {
+		for id := range api.Databases.Policies {
+			if principal.CanRead(id) {
+				databaseProjects = append(databaseProjects, id)
+			}
+		}
+	}
 	if api.Cloud != nil {
 		for id := range api.Cloud.Policies {
 			if principal.CanRead(id) {
@@ -98,7 +107,22 @@ func (api *API) installation(w http.ResponseWriter, request *http.Request) {
 			}
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"organizationId": api.Organization, "clusterId": api.Cluster, "development": api.Development, "notice": api.Notice, "cloudProjects": cloudProjects})
+	slices.Sort(cloudProjects)
+	slices.Sort(databaseProjects)
+	writeJSON(w, http.StatusOK, map[string]any{"organizationId": api.Organization, "clusterId": api.Cluster, "development": api.Development, "notice": api.Notice, "cloudProjects": cloudProjects, "databaseProjects": databaseProjects})
+}
+
+func (api *API) resources(w http.ResponseWriter, r *http.Request) {
+	p, ok := api.reader(w, r)
+	if !ok {
+		return
+	}
+	result, err := api.inspector().ListResources(r.Context(), p, r.PathValue("project"), r.URL.Query().Get("after"))
+	if err != nil {
+		failure(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (api *API) releases(w http.ResponseWriter, r *http.Request) {

@@ -53,12 +53,14 @@ func (api *API) Handler() http.Handler {
 	}
 	mux.Handle("/mcp", mcpserver.Handler(api.Security.MCP, api.inspector(), api.operatorService()))
 	mux.HandleFunc("GET /v1/installation", api.installation)
+	mux.HandleFunc("GET /v1/installation/onboarding", api.onboarding)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /v1/releases", api.submit)
 	mux.HandleFunc("GET /v1/projects", api.projects)
 	mux.HandleFunc("GET /v1/projects/{project}/releases", api.releases)
+	mux.HandleFunc("GET /v1/projects/{project}/resources", api.resources)
 	mux.HandleFunc("GET /v1/projects/{project}/environments", api.environments)
 	mux.HandleFunc("POST /v1/projects/{project}/environments/{environment}/deployments", api.selectRelease)
 	mux.HandleFunc("GET /v1/projects/{project}/environments/{environment}", api.environment)

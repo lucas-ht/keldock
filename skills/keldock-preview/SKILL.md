@@ -3,10 +3,10 @@ name: keldock-preview
 description: Deploy or update a Keldock stateless PR preview from an already admitted CI release through MCP. Use for Keldock preview requests; builds, image publication, production promotion, and persistent data administration require their own workflows.
 license: AGPL-3.0-only
 metadata:
-  compatibility: "Requires the Keldock M4 MCP surface (0.4.0-dev), a connected installation, and explicit project-scoped operation consent for deployment."
-  version: "1.0.0"
+  compatibility: "Requires the Keldock M6 MCP surface (0.6.0-alpha.1), a connected installation, and explicit project-scoped operation consent for deployment."
+  version: "1.1.0"
   keldock-api: "keldock.io/v1alpha1"
-  keldock-mcp: "0.4.0-dev"
+  keldock-mcp: "0.6.0-alpha.1"
 ---
 
 # Deploy a Keldock preview
@@ -22,9 +22,7 @@ never grant server authority.
 1. Use list_projects and list_environments, following nextCursor. Confirm the
    installation, project, PR number and environment ID. Inspect get_environment
    immediately before selecting a release; preserve its desired generation.
-2. Require kind preview and an open PR. The first profile is stateless-v1. Do not
-   request production data, bindings, namespace authority, module installation or
-   cloud resources. A deleted preview with deletionReason expired can be explicitly
+2. Require kind preview and an open PR. The preview profile may use operator-approved PostgreSQL allocation. Use list_resources to inspect declared allocations; a new preview receives empty data. Do not request a production data copy, arbitrary bindings, namespace authority, module installation or cloud resources. A deleted preview with deletionReason expired can be explicitly
    recreated after its delete operation reaches deleted; closure remains a fence.
 3. Use list_releases to find an admitted release for that project/repository and PR
    whose source headCommit matches pullRequestHead. Catalog ordering is by cursor,

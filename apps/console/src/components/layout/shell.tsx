@@ -11,6 +11,7 @@ import {
   Menu,
   Moon,
   Plug,
+  ListChecks,
   Sun,
   Users,
 } from "lucide-react";
@@ -46,6 +47,7 @@ const navigation = [
     admin: true,
   },
   { href: "/settings/mcp", label: "MCP access", icon: Plug },
+  { href: "/settings/setup", label: "Setup", icon: ListChecks, admin: true },
 ];
 function Navigation({
   user,

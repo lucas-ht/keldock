@@ -3,6 +3,8 @@ import { api, APIError, requireSession } from "@/lib/server-api";
 import type { Environment, Page } from "@/lib/contracts";
 import type { CloudInventory } from "@/lib/cloud-contracts";
 import { CloudInventoryView } from "@/components/cloud/inventory";
+import type { DatabaseInventory } from "@/lib/database-contracts";
+import { DatabaseInventoryView } from "@/components/databases/inventory";
 import { ClusterManagement } from "@/components/clusters/management";
 import { Refresh } from "@/components/layout/refresh";
 import { EmptyState } from "@/components/shared/feedback";
@@ -15,17 +17,22 @@ export default async function ResourcesPage({
   const { projectId } = await params;
   const base = `/v1/projects/${encodeURIComponent(projectId)}`;
   const session = await requireSession();
-  const [inventory, environments] = await Promise.all([
+  const [inventory, databases, environments] = await Promise.all([
     api<CloudInventory>(`${base}/cloud`).catch((error) => {
+      if (error instanceof APIError && error.status === 404) return null;
+      throw error;
+    }),
+    api<DatabaseInventory>(`${base}/databases`).catch((error) => {
       if (error instanceof APIError && error.status === 404) return null;
       throw error;
     }),
     api<Page<Environment>>(`${base}/environments`),
   ]);
-  if (!inventory)
+  if (!inventory && !databases)
     return (
-      <EmptyState title="Cloud resources are not enabled">
-        An operator can enable an approved cloud profile for this project.{" "}
+      <EmptyState title="No resource profiles are enabled">
+        An operator can enable PostgreSQL or an approved cloud profile for this
+        project.{" "}
         <Link href={`/projects/${projectId}`}>Return to environments</Link>.
       </EmptyState>
     );
@@ -51,23 +58,32 @@ export default async function ResourcesPage({
               {projectId} / Environments
             </Link>
           </p>
-          <h1>Cloud resources</h1>
-          <p>
-            Retained storage, exact consumer grants, domains, and database
-            archives.
-          </p>
+          <h1>Resources</h1>
+          <p>Environment databases, retained storage, and recovery evidence.</p>
         </div>
         <Refresh automatic />
       </div>
-      <CloudInventoryView
-        project={projectId}
-        inventory={inventory}
-        environments={choices}
-        admin={admin}
-        operate={admin || session.user.role === "operator"}
-        now={Date.now()}
-      />
-      {admin && (
+      {databases && (
+        <DatabaseInventoryView
+          project={projectId}
+          inventory={databases}
+          environments={choices}
+          admin={admin}
+          operate={admin || session.user.role === "operator"}
+          now={Date.now()}
+        />
+      )}
+      {inventory && (
+        <CloudInventoryView
+          project={projectId}
+          inventory={inventory}
+          environments={choices}
+          admin={admin}
+          operate={admin || session.user.role === "operator"}
+          now={Date.now()}
+        />
+      )}
+      {admin && inventory && (
         <section className="panel mt-7" aria-label="Cloud agent">
           <div className="panel-toolbar">
             <div>

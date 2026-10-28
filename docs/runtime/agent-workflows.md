@@ -1,7 +1,7 @@
 # Preview and recovery workflows through MCP
 
-The experimental M4 surface uses MCP 2026-07-28, the Go SDK v1.8.0 and server version
-0.4.0-dev. Its portable skills are version 1.0.0. The self-hosted endpoint and skills
+The experimental M6 surface uses MCP 2026-07-28, the Go SDK v1.8.0 and server version
+0.6.0-alpha.1. Its portable skills are version 1.1.0. The self-hosted endpoint and skills
 require no paid Keldock account or embedded model provider. An assistant host may have
 its own account requirements.
 
@@ -22,17 +22,18 @@ outside this tool surface.
 
 ## Tools and receipts
 
-| Tool              | Input                                                       | Outcome                                                                |
-| ----------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
-| list_projects     | none                                                        | Authorized projects and preview policy                                 |
-| list_environments | projectId, optional after                                   | Up to 25 targets; follow nextCursor                                    |
-| get_environment   | projectId, environmentId                                    | Current selection, source head, expiry and matching health             |
-| list_releases     | projectId, optional after                                   | Up to 25 admitted releases and immutable digests; follow nextCursor    |
-| get_operation     | projectId, operationId                                      | Durable operation and matching observation/freshness                   |
-| get_diagnostics   | projectId, environmentId                                    | Bounded redacted current-generation controller evidence                |
-| deploy_release    | projectId, environmentId, releaseId, generation, requestKey | New deployment of admitted inputs for an existing nonproduction target |
-| retry_operation   | projectId, operationId, generation, requestKey              | New generation of the current failed/canceled nonproduction deployment |
-| cancel_operation  | projectId, operationId, generation, requestKey              | Stop future work; retain completed effects and running workloads       |
+| Tool              | Input                                                       | Outcome                                                                                                                        |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| list_projects     | none                                                        | Authorized projects and preview policy                                                                                         |
+| list_resources    | projectId, optional after                                   | Up to 25 PostgreSQL allocations with retention, backup/WAL and isolated-restore evidence; no credentials or resource mutations |
+| list_environments | projectId, optional after                                   | Up to 25 targets; follow nextCursor                                                                                            |
+| get_environment   | projectId, environmentId                                    | Current selection, source head, expiry and matching health                                                                     |
+| list_releases     | projectId, optional after                                   | Up to 25 admitted releases and immutable digests; follow nextCursor                                                            |
+| get_operation     | projectId, operationId                                      | Durable operation and matching observation/freshness                                                                           |
+| get_diagnostics   | projectId, environmentId                                    | Bounded redacted current-generation controller evidence                                                                        |
+| deploy_release    | projectId, environmentId, releaseId, generation, requestKey | New deployment of admitted inputs for an existing nonproduction target                                                         |
+| retry_operation   | projectId, operationId, generation, requestKey              | New generation of the current failed/canceled nonproduction deployment                                                         |
+| cancel_operation  | projectId, operationId, generation, requestKey              | Stop future work; retain completed effects and running workloads                                                               |
 
 Mutation success returns `receipt`, containing releaseId, environmentId, deploymentId,
 operationId, generation and statusUrl. Preserve all inputs and the requestKey, which

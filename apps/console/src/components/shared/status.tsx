@@ -2,6 +2,11 @@ import { Badge } from "@/components/ui/badge";
 
 const labels: Record<string, string> = {
   pending: "Queued",
+  incomplete: "Needs setup",
+  retained: "Retained",
+  stale: "Stale",
+  optional: "Optional",
+  development: "Development",
   blocked: "Blocked",
   configured: "Configured",
   publishing: "Publishing",
@@ -27,6 +32,8 @@ export function Status({ state }: { state: string }) {
       ? "failure"
       : [
             "pending",
+            "incomplete",
+            "stale",
             "publishing",
             "reconciling",
             "offline",

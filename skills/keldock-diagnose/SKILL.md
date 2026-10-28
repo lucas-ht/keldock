@@ -3,10 +3,10 @@ name: keldock-diagnose
 description: Diagnose Keldock deployment failures or stale health using bounded MCP evidence, and perform requested nonproduction retry or cancellation. Use for Keldock rollout recovery; it cannot repair CI builds, alter images, execute shell commands, or administer persistent data.
 license: AGPL-3.0-only
 metadata:
-  compatibility: "Requires the Keldock M4 MCP surface (0.4.0-dev). Inspection needs project read consent; retry and cancellation additionally need explicit operation consent and current operator authority."
-  version: "1.0.0"
+  compatibility: "Requires the Keldock M6 MCP surface (0.6.0-alpha.1). Inspection needs project read consent; retry and cancellation additionally need explicit operation consent and current operator authority."
+  version: "1.1.0"
   keldock-api: "keldock.io/v1alpha1"
-  keldock-mcp: "0.4.0-dev"
+  keldock-mcp: "0.6.0-alpha.1"
 ---
 
 # Diagnose and recover a Keldock rollout
@@ -19,7 +19,7 @@ ask only when a consequential target or action remains ambiguous.
 ## Establish evidence
 
 Resolve the project/environment with list_projects and list_environments, following
-pagination. Read get_environment, get_operation and get_diagnostics. Keep the exact
+pagination. Read get_environment, get_operation and get_diagnostics. If the environment declares PostgreSQL, use list_resources for its current allocation, retention, backup/WAL and isolated-restore evidence; follow nextCursor. Keep the exact
 operation/deployment IDs and desired generation with every observation.
 
 Separate CI build/publication failure, admission denial, queued publication, rollout
@@ -33,6 +33,8 @@ If no release was admitted, report the CI prerequisite. If diagnostics identify 
 image, definition or missing operator-managed dependency, explain that retry reuses
 those same inputs. Do not fabricate repaired artifacts, change credentials, fetch
 arbitrary logs, or invoke cluster/database commands as a fallback.
+
+A retained database survives preview deletion and release rollback. A ready database is not a verified backup. Report backup state, archive time, observation freshness, and isolated restore readiness separately. An isolated restore does not prove data correctness or authorize a cutover. Missing backup evidence must remain unknown. These tools cannot create backups, attach retained data, restore SQL, or bypass an operator recovery fence.
 
 ## Requested recovery
 

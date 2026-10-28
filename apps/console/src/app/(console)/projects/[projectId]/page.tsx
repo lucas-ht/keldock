@@ -18,7 +18,9 @@ export default async function ProjectPage({
     api<Page<Environment>>(
       `/v1/projects/${encodeURIComponent(projectId)}/environments?after=${encodeURIComponent(after ?? "")}`,
     ),
-    api<{ cloudProjects?: string[] }>("/v1/installation"),
+    api<{ cloudProjects?: string[]; databaseProjects?: string[] }>(
+      "/v1/installation",
+    ),
   ]);
   const project = projects.items.find((item) => item.projectId === projectId);
   return (
@@ -32,12 +34,13 @@ export default async function ProjectPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {installation.cloudProjects?.includes(projectId) && (
+          {(installation.cloudProjects?.includes(projectId) ||
+            installation.databaseProjects?.includes(projectId)) && (
             <Link
               className={buttonVariants({ variant: "outline" })}
               href={`/projects/${projectId}/resources`}
             >
-              Cloud resources
+              Resources
             </Link>
           )}
           <Refresh automatic />

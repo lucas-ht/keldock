@@ -19,3 +19,6 @@ reports/
 *.tfstate.*
 *.tfplan
 .terraform/
+
+# Independent disposable console preview build
+**/.next-alpha/

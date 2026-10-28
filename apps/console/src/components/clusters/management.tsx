@@ -25,11 +25,13 @@ type Enrollment = {
 export function ClusterManagement({
   cluster,
   cloud = false,
+  database = false,
 }: {
   cluster: Cluster;
   cloud?: boolean;
+  database?: boolean;
 }) {
-  const root = cloud ? "/v1/cloud" : "/v1";
+  const root = cloud ? "/v1/cloud" : database ? "/v1/database" : "/v1";
   const router = useRouter();
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null),
     [error, setError] = useState<string | null>(null);
@@ -68,13 +70,16 @@ export function ClusterManagement({
             run:
           </p>
           <pre className="secret-output">
-            keldock enroll {cloud ? "--cloud " : ""}--config agent.json
+            keldock enroll {cloud ? "--cloud " : database ? "--database " : ""}
+            --config {database ? "database-agent.json" : "agent.json"}
             --cluster {cluster.id} --token-file enrollment.token
           </pre>
           <p className="muted">
             Start the enrolled agent with{" "}
             <code>
-              keldock {cloud ? "cloud-agent" : "agent"} --config agent.json
+              keldock{" "}
+              {cloud ? "cloud-agent" : database ? "database-agent" : "agent"}{" "}
+              --config {database ? "database-agent.json" : "agent.json"}
             </code>
             . Existing workloads retain their last approved state during
             reconnection.
