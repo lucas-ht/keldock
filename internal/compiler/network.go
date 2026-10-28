@@ -50,5 +50,6 @@ func networkPolicy(name string, app v1.Application, selection Selection) *networ
 			PodSelector:       &metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "traefik"}}}},
 			Ports: []networkingv1.NetworkPolicyPort{{Protocol: ptr.To(corev1.ProtocolTCP), Port: ptr.To(intstr.FromInt32(component.Port))}}})
 	}
+	databaseEgress(policy, name, selection)
 	return policy
 }

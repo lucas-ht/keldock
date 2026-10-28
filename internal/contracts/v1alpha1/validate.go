@@ -21,6 +21,9 @@ func ValidName(name string) bool { return namePattern.MatchString(name) }
 
 // Validate rejects unsupported or privilege-bearing application input.
 func (app Application) Validate() error {
+	if err := app.validateResources(); err != nil {
+		return err
+	}
 	if app.APIVersion != APIVersion || !ValidName(app.Name) {
 		return fmt.Errorf("application requires apiVersion %s and a valid name", APIVersion)
 	}

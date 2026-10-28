@@ -58,6 +58,7 @@ func pod(name string, component v1.Component, image string, selection Selection)
 func workload(name string, component v1.Component, image string, selection Selection) []any {
 	metadata := metav1.ObjectMeta{Name: name, Namespace: selection.Namespace, Labels: labels(name, selection), Annotations: map[string]string{"keldock.io/deployment": selection.DeploymentID}}
 	template := pod(name, component, image, selection)
+	bindDatabasePod(&template, name, selection)
 	if binding, ok := selection.Cloud[name]; ok {
 		bindCloudPod(&template, binding)
 	}

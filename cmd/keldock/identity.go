@@ -26,6 +26,7 @@ func identityCommand(ctx context.Context, args []string) error {
 	tokenFile := flags.String("token-file", "", "one-time enrollment token file")
 	cluster := flags.String("cluster", "", "configured cluster identifier")
 	cloud := flags.Bool("cloud", false, "enroll the separate optional cloud agent")
+	database := flags.Bool("database", false, "enroll the separate optional PostgreSQL agent")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -41,6 +42,12 @@ func identityCommand(ctx context.Context, args []string) error {
 		enroll := agent.Enroll
 		if *cloud {
 			enroll = agent.EnrollCloud
+		}
+		if *database {
+			if *cloud {
+				return fmt.Errorf("select one agent purpose")
+			}
+			enroll = agent.EnrollDatabase
 		}
 		if err := enroll(ctx, settings.APIURL, *cluster, token, settings.CredentialFile, settings.Development); err != nil {
 			return err

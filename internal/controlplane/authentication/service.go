@@ -28,6 +28,7 @@ type Service struct {
 	Users    *access.Repository
 	Clusters *clusteridentity.Repository
 	Cloud    *clusteridentity.Repository
+	Database *clusteridentity.Repository
 	MCP      *mcpidentity.Repository
 	config   Config
 	cookie   string
@@ -59,6 +60,7 @@ func New(users *access.Repository, clusters *clusteridentity.Repository, mcp *mc
 // Register installs concrete authenticated management and OAuth endpoints.
 func (service *Service) Register(mux *http.ServeMux) {
 	service.registerCloud(mux)
+	service.registerDatabase(mux)
 	mux.HandleFunc("POST /v1/auth/login", service.login)
 	mux.HandleFunc("POST /v1/auth/logout", service.logout)
 	mux.HandleFunc("GET /v1/auth/me", service.me)

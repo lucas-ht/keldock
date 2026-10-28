@@ -110,6 +110,9 @@ func serve(ctx context.Context, settings controlSettings, migrate bool) error {
 	}
 	api := &controlplane.API{Store: store, GitHub: verifier, Organization: settings.Organization, Cluster: settings.Cluster, Projects: projects, RepositoryOwners: owners,
 		Security: security, Development: settings.Development, WebhookSecret: []byte(webhookSecret), Domain: settings.Domain}
+	if err := configureDatabases(ctx, api, settings, users); err != nil {
+		return err
+	}
 	if len(settings.Cloud) > 0 {
 		policies := map[string]cloud.Policy{}
 		for _, policy := range settings.Cloud {

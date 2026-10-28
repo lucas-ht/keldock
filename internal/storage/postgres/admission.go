@@ -124,6 +124,9 @@ func (store *Store) admit(ctx context.Context, scope v1.Scope, actor, key, hostn
 		return receipt, err
 	}
 	selection := compiler.Selection{EnvironmentID: environmentID, DeploymentID: deploymentID, Generation: generation, Namespace: "ke-" + environmentHash, Hostname: hostname}
+	if err := resolveDatabases(ctx, tx, scope, admittedRelease, &selection); err != nil {
+		return receipt, err
+	}
 	if err := inheritCapabilities(ctx, tx, scope, environmentID, &selection); err != nil {
 		return receipt, err
 	}

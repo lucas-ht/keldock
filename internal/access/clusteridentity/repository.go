@@ -15,10 +15,20 @@ import (
 
 // Repository is bound to the installation's organization and single configured cluster.
 type Repository struct {
-	pool    *pgxpool.Pool
-	users   *access.Repository
-	cluster string
-	cloud   bool
+	pool     *pgxpool.Pool
+	users    *access.Repository
+	cluster  string
+	cloud    bool
+	database bool
+}
+
+// NewDatabaseRepository isolates database provisioning from workload and cloud authority.
+func NewDatabaseRepository(pool *pgxpool.Pool, users *access.Repository, cluster string) (*Repository, error) {
+	repository, err := NewRepository(pool, users, cluster)
+	if err == nil {
+		repository.database = true
+	}
+	return repository, err
 }
 
 // NewCloudRepository reuses the identity lifecycle with separate grants, credentials,
@@ -33,6 +43,9 @@ func NewCloudRepository(pool *pgxpool.Pool, users *access.Repository, cluster st
 
 // statement selects only fixed, purpose-specific tables; no caller can choose SQL identifiers.
 func (repository *Repository) statement(query string) string {
+	if repository.database {
+		return strings.NewReplacer("access_clusters", "access_database_clusters", "access_enrollments", "access_database_enrollments", "access_agents", "access_database_agents").Replace(query)
+	}
 	if !repository.cloud {
 		return query
 	}

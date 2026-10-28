@@ -10,6 +10,7 @@ import (
 	"github.com/lucas-ht/keldock/internal/admission"
 	"github.com/lucas-ht/keldock/internal/cloud"
 	v1 "github.com/lucas-ht/keldock/internal/contracts/v1alpha1"
+	"github.com/lucas-ht/keldock/internal/database"
 )
 
 type repositorySettings struct {
@@ -42,6 +43,7 @@ type controlSettings struct {
 	Development           bool                 `json:"development"`
 	Projects              []repositorySettings `json:"projects"`
 	Cloud                 []cloud.Policy       `json:"cloud,omitempty"`
+	Databases             []database.Policy    `json:"databases,omitempty"`
 }
 
 type agentSettings struct {

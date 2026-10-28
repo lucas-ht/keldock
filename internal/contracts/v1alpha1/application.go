@@ -7,9 +7,10 @@ const APIVersion = "keldock.io/v1alpha1"
 
 // Application describes runtime inputs, independently of builds and Kubernetes authority.
 type Application struct {
-	APIVersion string               `json:"apiVersion" yaml:"apiVersion"`
-	Name       string               `json:"name" yaml:"name"`
-	Components map[string]Component `json:"components" yaml:"components"`
+	APIVersion string                     `json:"apiVersion" yaml:"apiVersion"`
+	Name       string                     `json:"name" yaml:"name"`
+	Components map[string]Component       `json:"components" yaml:"components"`
+	Resources  map[string]ResourceRequest `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
 // Component is a bounded workload and its explicit runtime dependencies.
@@ -25,6 +26,7 @@ type Component struct {
 	Env        map[string]string `json:"env,omitempty" yaml:"env,omitempty"`
 	Size       string            `json:"size" yaml:"size"`
 	Route      bool              `json:"route,omitempty" yaml:"route,omitempty"`
+	Resources  []string          `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
 // Probe is an HTTP or exec readiness/liveness check. Exactly one form is allowed.

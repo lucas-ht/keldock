@@ -21,15 +21,20 @@ type credentialState struct {
 
 // Enroll consumes a short-lived grant and saves its replacement credential in a private file.
 func Enroll(ctx context.Context, endpoint, cluster, token, path string, development bool) error {
-	return enroll(ctx, endpoint, cluster, token, path, development, false)
+	return enroll(ctx, endpoint, cluster, token, path, development, false, false)
 }
 
 // EnrollCloud exchanges only a cloud enrollment and stores its independent credential.
 func EnrollCloud(ctx context.Context, endpoint, cluster, token, path string, development bool) error {
-	return enroll(ctx, endpoint, cluster, token, path, development, true)
+	return enroll(ctx, endpoint, cluster, token, path, development, true, false)
 }
 
-func enroll(ctx context.Context, endpoint, cluster, token, path string, development, cloud bool) error {
+// EnrollDatabase exchanges a separate database provisioning grant.
+func EnrollDatabase(ctx context.Context, endpoint, cluster, token, path string, development bool) error {
+	return enroll(ctx, endpoint, cluster, token, path, development, false, true)
+}
+
+func enroll(ctx context.Context, endpoint, cluster, token, path string, development, cloud, database bool) error {
 	if !v1.ValidName(cluster) || path == "" {
 		return fmt.Errorf("cluster and credential file required")
 	}
@@ -41,6 +46,7 @@ func enroll(ctx context.Context, endpoint, cluster, token, path string, developm
 		return err
 	}
 	client.cloud = cloud
+	client.database = database
 	var identity clusteridentity.Identity
 	if err := client.request(ctx, "POST", "/v1/agent/enroll", map[string]string{"clusterId": cluster, "token": token}, &identity); err != nil {
 		return err

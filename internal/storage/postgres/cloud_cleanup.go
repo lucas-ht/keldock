@@ -12,6 +12,9 @@ import (
 // detachCloudConsumers tombstones access/route intent in the preview deletion
 // transaction. A later PR reopen cannot revive old grants or delete retained stores.
 func detachCloudConsumers(ctx context.Context, tx pgx.Tx, environment string) error {
+	if err := retainDatabases(ctx, tx, environment); err != nil {
+		return err
+	}
 	rows, err := tx.Query(ctx, `SELECT i.intent FROM cloud_intents i JOIN environments e ON e.organization_id=i.organization_id AND e.project_id=i.project_id WHERE e.id=$1 AND (i.intent->'binding'->>'environmentId'=$1 OR i.intent->'domain'->'request'->>'environmentId'=$1) AND i.intent->>'action' NOT IN ('disconnect','disconnected') ORDER BY i.id FOR UPDATE OF i`, environment)
 	if err != nil {
 		return err

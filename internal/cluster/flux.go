@@ -36,6 +36,9 @@ func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedD
 	if err := registrar.register(ctx, selection, len(plan.workloads) > 0); err != nil {
 		return err
 	}
+	if err := registrar.projectDatabases(ctx, desired); err != nil {
+		return err
+	}
 	if err := registrar.projectPullSecrets(ctx, selection, plan); err != nil {
 		return err
 	}

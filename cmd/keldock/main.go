@@ -36,6 +36,9 @@ func run(ctx context.Context, args []string) error {
 	if args[0] == "cloud-agent" {
 		return cloudAgentCommand(ctx, args[1:])
 	}
+	if args[0] == "database-agent" {
+		return databaseAgentCommand(ctx, args[1:])
+	}
 	if args[0] == "prepare" {
 		return prepareCommand(args[1:])
 	}
