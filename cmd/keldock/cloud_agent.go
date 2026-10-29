@@ -18,14 +18,7 @@ func cloudAgentCommand(ctx context.Context, args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	var settings struct {
-		APIURL         string         `json:"apiUrl"`
-		CredentialFile string         `json:"credentialFile"`
-		Kubeconfig     string         `json:"kubeconfig"`
-		Context        string         `json:"context"`
-		Development    bool           `json:"development"`
-		Policies       []cloud.Policy `json:"policies"`
-	}
+	var settings cloudAgentSettings
 	if err := readSettings(*config, &settings); err != nil {
 		return err
 	}

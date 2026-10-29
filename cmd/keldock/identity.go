@@ -31,8 +31,8 @@ func identityCommand(ctx context.Context, args []string) error {
 		return err
 	}
 	if args[0] == "enroll" {
-		var settings agentSettings
-		if err := readSettings(*config, &settings); err != nil {
+		settings, err := readEnrollmentSettings(*config, *cloud, *database)
+		if err != nil {
 			return err
 		}
 		token, err := secret(*tokenFile)
@@ -44,9 +44,6 @@ func identityCommand(ctx context.Context, args []string) error {
 			enroll = agent.EnrollCloud
 		}
 		if *database {
-			if *cloud {
-				return fmt.Errorf("select one agent purpose")
-			}
 			enroll = agent.EnrollDatabase
 		}
 		if err := enroll(ctx, settings.APIURL, *cluster, token, settings.CredentialFile, settings.Development); err != nil {

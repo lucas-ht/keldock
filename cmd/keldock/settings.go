@@ -58,6 +58,45 @@ type agentSettings struct {
 	Development             bool   `json:"development"`
 }
 
+type databaseAgentSettings struct {
+	agentSettings
+	Policies []database.Policy `json:"policies"`
+}
+
+type cloudAgentSettings struct {
+	APIURL         string         `json:"apiUrl"`
+	CredentialFile string         `json:"credentialFile"`
+	Kubeconfig     string         `json:"kubeconfig"`
+	Context        string         `json:"context"`
+	Development    bool           `json:"development"`
+	Policies       []cloud.Policy `json:"policies"`
+}
+
+func readEnrollmentSettings(path string, cloud, database bool) (agentSettings, error) {
+	var settings agentSettings
+	if cloud && database {
+		return settings, fmt.Errorf("select one agent purpose")
+	}
+	if database {
+		var full databaseAgentSettings
+		if err := readSettings(path, &full); err != nil {
+			return settings, err
+		}
+		return full.agentSettings, nil
+	}
+	if cloud {
+		var full cloudAgentSettings
+		if err := readSettings(path, &full); err != nil {
+			return settings, err
+		}
+		return agentSettings{APIURL: full.APIURL, CredentialFile: full.CredentialFile, Development: full.Development}, nil
+	}
+	if err := readSettings(path, &settings); err != nil {
+		return settings, err
+	}
+	return settings, nil
+}
+
 func readSettings(path string, target any) error {
 	info, err := os.Stat(path)
 	if err != nil {

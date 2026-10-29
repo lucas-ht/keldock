@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"github.com/lucas-ht/keldock/internal/admission"
-	"github.com/lucas-ht/keldock/internal/database"
 )
 
 func installationProject(ctx context.Context, args []string) error {
@@ -85,10 +84,7 @@ func installationProject(ctx context.Context, args []string) error {
 		if err := readSettings(filepath.Join(*directory, "agent.json"), &agent); err != nil {
 			return err
 		}
-		databaseAgent := struct {
-			agentSettings
-			Policies []database.Policy `json:"policies"`
-		}{agent, settings.Databases}
+		databaseAgent := databaseAgentSettings{agent, settings.Databases}
 		if err := writePrivateJSON(filepath.Join(*directory, "database-agent.json"), databaseAgent); err != nil {
 			return err
 		}

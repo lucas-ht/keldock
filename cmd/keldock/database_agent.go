@@ -19,10 +19,7 @@ func databaseAgentCommand(ctx context.Context, args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	var settings struct {
-		agentSettings
-		Policies []database.Policy `json:"policies"`
-	}
+	var settings databaseAgentSettings
 	if err := readSettings(*config, &settings); err != nil {
 		return err
 	}
