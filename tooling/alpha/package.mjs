@@ -13,6 +13,7 @@ import { gzipSync } from "node:zlib";
 import { parse } from "yaml";
 import { renderDependencies } from "./dependencies.mjs";
 import { renderFlux } from "./flux.mjs";
+import { checkDocuments } from "../checks/lib/markdown.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 process.chdir(root);
@@ -124,6 +125,14 @@ function walk(path) {
   }
 }
 walk(directory);
+const documents = members
+  .map((path) => relative(directory, path))
+  .filter((path) => path.endsWith(".md"));
+const failures = checkDocuments(directory, documents);
+if (failures.length) throw new Error(failures.join("\n"));
+process.stdout.write(
+  `Verified ${documents.length} portable Markdown documents.\n`,
+);
 write(
   "SHA256SUMS",
   members
