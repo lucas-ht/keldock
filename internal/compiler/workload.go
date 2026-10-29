@@ -69,6 +69,10 @@ func workload(name string, component v1.Component, image string, selection Selec
 			Spec: appsv1.DeploymentSpec{Replicas: ptr.To(int32(1)), Selector: &metav1.LabelSelector{MatchLabels: labels(name, selection)}, Template: template}})
 	case "job":
 		metadata.Name = JobName(name, selection.DeploymentID)
+		// A selected Job is only created once. Source revisions and pull patches
+		// converge independently; a late patch must not mutate its Pod template or
+		// force a completed migration to execute again. New deployments get new names.
+		metadata.Annotations["kustomize.toolkit.fluxcd.io/ssa"] = "IfNotPresent"
 		template.Spec.RestartPolicy = corev1.RestartPolicyNever
 		result = append(result, &batchv1.Job{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}, ObjectMeta: metadata,
 			Spec: batchv1.JobSpec{BackoffLimit: ptr.To(int32(0)), ActiveDeadlineSeconds: ptr.To(int64(60)), Template: template}})

@@ -52,7 +52,12 @@ disposable-cluster tests; generated YAML alone does not prove isolation.
 
 Release jobs receive a stable identity per deployment, so retrying the same selection
 does not deliberately create another job. Selecting another deployment runs its jobs
-again. Application job code must be idempotent. CronJob readiness describes configured
+again. Flux uses its
+[IfNotPresent apply policy](https://fluxcd.io/flux/components/kustomize/kustomizations/#ifnotpresent)
+for these immutable Job objects: a late registrar pull patch cannot change a running
+or completed Pod template or recreate its migration. Job Pods inherit the
+operator-owned ServiceAccount's reader when admitted. Application job code must be
+idempotent. CronJob readiness describes configured
 schedule health, not proof of a successful scheduled execution.
 
 OCI content and manifest digests are deterministic. Content-derived tags retain bundles;
