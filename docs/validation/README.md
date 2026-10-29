@@ -96,11 +96,13 @@ identity/permission boundaries, adoption, DNS/TLS, backup/WAL/restore, upgrade a
 retention proofs, UI checks and final fixture cleanup. This is an optional development
 profile; M6 still owns external-operator alpha installation and database allocation.
 
-## Self-hosted alpha candidate
+## Self-hosted development alpha
 
 [M6 evidence](m6-self-hosted-alpha.md) records independent core packaging, PostgreSQL
 allocation/backup/isolated restore, fenced control-plane recovery, retention,
 MCP/browser checks and measured development footprint. The separate
 [fresh-target assisted journey](m6-fresh-target.md) passed real customer CI, data
-recovery and retained-resource uninstall/reinstall. Public security reporting and
-publication remain explicit gates; no public supported release is claimed.
+recovery and retained-resource uninstall/reinstall. Its
+[public alpha publication record](m6-fresh-target.md#public-alpha-publication)
+confirms the reviewed tag, anonymous image/asset verification and enabled private
+security reporting. The release remains limited to its documented development profile.

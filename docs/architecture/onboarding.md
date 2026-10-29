@@ -1,9 +1,10 @@
 # Self-hosted onboarding
 
-Status: M6 candidate implementation. The [installation guide](../runtime/alpha/README.md)
+Status: M6 development alpha published. The [installation guide](../runtime/alpha/README.md)
 describes the packaged chart, local accounts, explicit enrollment, PostgreSQL and recovery.
 The [fresh-target assisted walkthrough](../validation/m6-fresh-target.md) passed.
-Operational public reporting and release publication remain evidence gates.
+The [public release record](../validation/m6-fresh-target.md#public-alpha-publication)
+confirms the verified artifacts and enabled private security reporting.
 
 ## Intended first installation
 
@@ -61,6 +62,8 @@ The acceptance application includes web, API, worker, schedule, migration and Po
 Record setup steps/time, required accounts, steady-state resources, failed prerequisites,
 recovery results and ongoing operator responsibilities. Test with someone who did not
 build the product, using no private developer installation or hidden manual fixes.
+The published alpha records assisted acceptance; independent human usability remains
+a separate follow-up measurement.
 
 Uninstall must inventory retained data, identities, shared/supplied controllers and
 external services. Removing Keldock is not authorization to delete customer data.

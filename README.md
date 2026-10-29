@@ -36,14 +36,16 @@ released-writer adoption and supplied-database backup/restore. Its
 retention, upgrade, recovery and scoped fixture cleanup. Core delivery requires none
 of these controllers or an AWS account.
 
-M6 adds an unpublished [self-hosted alpha candidate](docs/runtime/alpha/README.md):
+M6 ships the public [0.6.0-alpha.1 development alpha](https://github.com/lucas-ht/keldock/releases/tag/v0.6.0-alpha.1):
 packaged control plane and independent agents, PostgreSQL allocation, supplied native
 backups/isolated restores, local onboarding, resource inspection through MCP, and fenced
 control-plane snapshot recovery. Core delivery and a measured 2 CPU / 4 GiB development
 floor have local acceptance evidence. A [fresh-target assisted walkthrough](docs/validation/m6-fresh-target.md)
 also passed real CI, data recovery, retention and supplied-dependency reinstall.
-Operational public reporting and reviewed publication remain exit gates.
-This is not a production-validation claim.
+The [release record](docs/validation/m6-fresh-target.md#public-alpha-publication)
+confirms anonymous image/artifact access and enabled private security reporting.
+Use the [installation guide](docs/runtime/alpha/installation.md) and its tested
+Linux/arm64 development profile. This is not a production-validation claim.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.
@@ -74,7 +76,7 @@ workflow syntax and the console's TypeScript/production build. It does not valid
 Kubernetes deployment or cloud access.
 The disposable developer environment is available through `task local:test`; see
 [process commands and private configuration](docs/runtime/processes.md).
-The candidate chart and operator CLI are described in the [installation guide](docs/runtime/alpha/installation.md).
+The alpha chart and operator CLI are described in the [installation guide](docs/runtime/alpha/installation.md).
 
 For the local console, run `task local:console:api` and `task local:console` in separate
 terminals, then open `http://127.0.0.1:3800`. The private fixture login and exact local

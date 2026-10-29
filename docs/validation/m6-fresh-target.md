@@ -18,7 +18,8 @@ credentials or synthetic admission. Corrections were packaged from clean committ
 source, including all four CLI targets, source, chart, pinned dependencies and skills.
 The d97ecbd kit had 563 verified members; its packaged Linux arm64 CLI was identical
 to the binary placed in the runtime image. Image references are immutable.
-These are local candidates; publication remains a separate decision.
+Those were local candidates. The subsequent explicitly approved public release is
+recorded below with its final source and verified artifact identities.
 
 ## Observed results
 
@@ -82,4 +83,48 @@ Operators need their own stable HTTPS/DNS and independent encrypted snapshot sto
 Snapshots and recovery copies remain owner-only local acceptance material. The
 journey does not prove off-machine recovery, total cluster/volume loss, HA, arbitrary
 registry/provider compatibility, hostile tenant isolation or independent usability.
-Public security reporting and publication remain separate reviewed gates.
+Public security reporting and publication passed their separate reviewed gates below.
+
+## Public alpha publication
+
+After explicit operator approval, [v0.6.0-alpha.1](https://github.com/lucas-ht/keldock/releases/tag/v0.6.0-alpha.1)
+was published on 2026-10-29. The annotated tag resolves to source
+`04c13e53ad1f32e249027f207e104c15258aaa16`. That final change increases the hosted
+doctor deadline from ten to fifteen minutes; runtime Go source is unchanged from
+the accepted d97ecbd corrections.
+
+[Exact-source hosted CI](https://github.com/lucas-ht/keldock/actions/runs/40875426248)
+passed doctor (10m27s) and the disposable runtime job (19m13s). Completed test
+packages reported runtime 806.930s, access 7.128s, GitHub 5.588s and local cloud
+contracts 3.985s. These cloud contracts remain separate from AWS validation.
+
+The kit has 564 checked members and 56 portable Markdown documents. Every checksum
+passed before and after safe archive extraction. Its Linux arm64 CLI is identical
+to the actual runtime-image binary; the extracted macOS arm64 CLI reports the same
+version and source. All ten published assets were downloaded without GitHub
+credentials and matched both the approved inventory and GitHub's recorded SHA256.
+The complete kit archive SHA256 is
+`12efab0a85e2bf9dff1dfd7b4f70dd703efc438497c3dbe36f886f09d8a3c343`.
+
+Both public product images were pulled at these exact digests with an empty Docker
+credential configuration. The pulled runtime's actual CLI reports the reviewed source.
+
+- Runtime: `ghcr.io/lucas-ht/keldock-runtime@sha256:c6885db1465077f453868b00b2b4247258c9fcd19e75e162d8e851ee02d76fe4`.
+- Console: `ghcr.io/lucas-ht/keldock-console@sha256:e8fb93a3a75f32afff7de33f37562a600046348ec33401f0193f229fd044c5b3`.
+
+The final matching kit upgrade preserved all eight PVCs, four namespaces, four
+checkpoints and three SQL markers. Read-only MCP confirmed current staging
+generation 2, all five components, database generation 3, healthy WAL/restore
+observations and the retained preview. All 300 one-second upgrade samples returned
+application HTTP 200. Baseline archive object identities were unchanged.
+
+GitHub private vulnerability reporting is enabled. Its anonymous advisories page
+exposes the reporting entry point; the maintainer's saved repository subscription
+contains only Security alerts, with existing GitHub/email notification channels
+verified. No vulnerability report was submitted as a test. The example application
+repository and private operator workspace remain private.
+
+The frozen kit source records the prepublication candidate state; this current
+guide and the release notes record completed publication. Linux/arm64 is the tested
+runtime. CLI cross-builds do not prove other runtime architectures, and assisted
+acceptance does not establish independent human usability or production readiness.

@@ -2,21 +2,21 @@
 
 ## Current status
 
-Keldock's 0.6.0-alpha.1 candidate passed developer and assisted fresh-target
-acceptance. It remains unpublished and limited to the documented development
+Keldock's public 0.6.0-alpha.1 development alpha passed developer and assisted fresh-target
+acceptance. It remains limited to the documented development
 profile. No production security, hostile-tenant isolation, availability or complete
-disaster-recovery guarantee is made. There is no maintained public release yet.
+disaster-recovery guarantee is made. See the
+[release and verification record](../docs/validation/m6-fresh-target.md#public-alpha-publication).
 
 ## Reporting
 
 Do not put credentials, exploit details or customer data in public issues. The
-planned reporting route is [GitHub private vulnerability reporting](https://github.com/lucas-ht/keldock/security/advisories/new).
-It is not currently enabled for this private candidate. Do not send a report until
-that route is confirmed operational.
+reporting route is [GitHub private vulnerability reporting](https://github.com/lucas-ht/keldock/security/advisories/new).
+It is enabled; the public entry point and maintainer security-alert subscription
+were verified on 2026-10-29.
 
-Before public alpha publication, the maintainer must enable the feature, verify
-the reporting form and confirm repository security-alert notifications. GitHub
-documents this feature for public repositories and makes notifications dependent
+Maintainers must preserve the reporting route and its notification subscription.
+GitHub documents the feature for public repositories and makes notifications dependent
 on the maintainer's watch settings; see [its reporting configuration guide](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
 No private email address, response SLA or paid reporting service is implied.
 

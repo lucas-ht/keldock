@@ -1,13 +1,14 @@
-# Self-hosted alpha candidate
+# Self-hosted development alpha
 
 M6 packages one organization and one customer-controlled cluster. The Go API and
 worker share a pod with the console; the registrar and optional PostgreSQL
 provisioner have separate enrolled identities. No AWS, Crossplane, enterprise SSO,
 Vault, Temporal, paid Keldock account or model provider is required.
 
-This is an **unpublished candidate**. The [fresh-target assisted walkthrough](../../validation/m6-fresh-target.md)
-passed; operational public security reporting and release publication remain gates
-in the [implementation plan](../../implementation-plan.md).
+The public [0.6.0-alpha.1 prerelease](https://github.com/lucas-ht/keldock/releases/tag/v0.6.0-alpha.1)
+passed the [fresh-target assisted walkthrough](../../validation/m6-fresh-target.md).
+Its [publication record](../../validation/m6-fresh-target.md#public-alpha-publication)
+confirms anonymous artifact/image access and private security reporting.
 Use the matching source, chart, image digests and checksums from one reviewed kit.
 
 - [Install and onboard](installation.md), including supplied dependencies.

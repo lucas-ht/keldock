@@ -1,8 +1,9 @@
 # Tested profile and limits
 
 The candidate supports one organization, one existing cluster and a small trusted
-team. The fresh-target assisted walkthrough passed; public reporting and release publication
-remain pending.
+team. The fresh-target assisted walkthrough passed, and
+[0.6.0-alpha.1 is published](../../validation/m6-fresh-target.md#public-alpha-publication)
+with verified public artifacts and private security reporting.
 Use the [validation index](../../validation/README.md) for the evidence boundary.
 
 | Component                                   | Candidate pin                         |

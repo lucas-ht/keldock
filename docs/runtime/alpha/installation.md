@@ -28,7 +28,14 @@ Neither is a hostile-tenant security boundary.
 
 ## Prepare reviewed inputs
 
-Use the release's `keldock` binary or runtime image. For a source candidate, build
+Download the complete [0.6.0-alpha.1 kit](https://github.com/lucas-ht/keldock/releases/download/v0.6.0-alpha.1/keldock-0.6.0-alpha.1-kit.tar.gz)
+and its [checksum sidecar](https://github.com/lucas-ht/keldock/releases/download/v0.6.0-alpha.1/keldock-0.6.0-alpha.1-kit.tar.gz.sha256).
+Verify the archive before extraction, then verify `SHA256SUMS` from the extracted
+kit directory. Use `sha256sum -c` on Linux or `shasum -a 256 -c` on macOS.
+Put the matching OS/architecture CLI on PATH as `keldock`; the tested runtime is
+Linux/arm64. The kit's `release.json` contains the public immutable product images.
+
+For a source candidate, build
 the two Dockerfiles in `packaging/images/` with `--build-arg VERSION=0.6.0-alpha.1`
 and `--build-arg REVISION=YOUR_SOURCE_COMMIT`, then push them to your own accessible
 registry. Record **immutable digests** in a release JSON with `version`, `revision`,
@@ -131,13 +138,13 @@ render-secret --directory ./private-installation` before reviewing/applying it.
 
 Your CI builds, tests, publishes and attests immutable images. The thin Keldock Action
 submits the complete release; see [the application contract](../contracts.md).
-While the candidate repository/Action remains private, a separate operator must not
-depend on the maintainer's owner-only Action sharing setting. Use the verified kit's
-source archive: copy its `action.yml` and complete `action/` directory under your
+Use the published Action pinned to
+`lucas-ht/keldock@04c13e53ad1f32e249027f207e104c15258aaa16`, or vendor the verified kit's
+source: copy its `action.yml` and complete `action/` directory under your
 application's `.github/actions/keldock/`, then use `./.github/actions/keldock` after
 checkout. Keep that vendored source tied to the reviewed kit revision. Use the kit's
-matching CLI binary or build the CLI from its source in trusted CI. This requires
-neither access to the maintainer's private repository nor a shared publisher token.
+matching CLI binary or build the CLI from its source in trusted CI. CI retains its
+own repository and registry identities.
 Inspect its receipt, timeline and current-generation component health. Exercise a PR
 open/update/close before enabling automatic previews for a real project.
 
