@@ -51,9 +51,6 @@ func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedD
 	if len(plan.bundle) > 0 {
 		source["spec"].(map[string]any)["secretRef"] = map[string]any{"name": "keldock-bundle-pull"}
 	}
-	if err := registrar.apply(ctx, source, selection.EnvironmentID, selection.Generation); err != nil {
-		return fmt.Errorf("register source: %w", err)
-	}
 	if err := registrar.removeUnusedPullSecrets(ctx, selection, plan); err != nil {
 		return err
 	}
@@ -72,6 +69,12 @@ func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedD
 				`dep.metadata.labels['keldock.io/deployment'] == self.metadata.labels['keldock.io/deployment'] && has(dep.status.conditions) && dep.status.conditions.exists(c, c.type == 'Ready' && c.status == 'True') && dep.metadata.generation == dep.status.observedGeneration && has(dep.status.lastAppliedRevision) && dep.status.lastAppliedRevision.endsWith('%s')`, digest)})
 		}
 		spec["dependsOn"] = dependencies
+		if definition.Components[name].Kind == "job" {
+			// IfNotPresent resources can be skipped by apply; explicitly observe the
+			// selected Job even when it was created before its pull patch arrived.
+			spec["wait"] = false
+			spec["healthChecks"] = []map[string]string{{"apiVersion": "batch/v1", "kind": "Job", "name": compiler.JobName(name, selection.DeploymentID), "namespace": selection.Namespace}}
+		}
 		patches, err := pullPatches(name, definition.Components[name], desired.Images[name], selection, plan)
 		if err != nil {
 			return err
@@ -95,6 +98,12 @@ func (registrar *Registrar) Reconcile(ctx context.Context, desired v1.ProjectedD
 				return err
 			}
 		}
+	}
+	// Advance the source only after every component targets this generation.
+	// Otherwise Flux can consume a new artifact with the previous Job pull patch
+	// or dependency expression before the remaining registrar writes complete.
+	if err := registrar.apply(ctx, source, selection.EnvironmentID, selection.Generation); err != nil {
+		return fmt.Errorf("register source: %w", err)
 	}
 	return nil
 }

@@ -56,8 +56,13 @@ again. Flux uses its
 [IfNotPresent apply policy](https://fluxcd.io/flux/components/kustomize/kustomizations/#ifnotpresent)
 for these immutable Job objects: a late registrar pull patch cannot change a running
 or completed Pod template or recreate its migration. Job Pods inherit the
-operator-owned ServiceAccount's reader when admitted. Application job code must be
-idempotent. CronJob readiness describes configured
+operator-owned ServiceAccount's reader when admitted. Each Job Kustomization uses
+an explicit health check for the selected Job, with `wait: false`, following
+[Flux's health-check contract](https://fluxcd.io/flux/components/kustomize/kustomizations/#health-checks).
+The registrar advances the source digest only after all component policies target
+the new selection. Observed readiness also requires every selected prerequisite
+to be ready, including transitive dependencies; an independent branch stays usable.
+Application job code must be idempotent. CronJob readiness describes configured
 schedule health, not proof of a successful scheduled execution.
 
 OCI content and manifest digests are deterministic. Content-derived tags retain bundles;

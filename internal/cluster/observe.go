@@ -148,6 +148,9 @@ func (registrar *Registrar) Observe(ctx context.Context, selection compiler.Sele
 		}
 		report.Components = append(report.Components, health)
 	}
+	if err := constrainDependencyReadiness(definition, report.Components); err != nil {
+		return report, err
+	}
 	objects, err := registrar.resource("Kustomization", selection.Namespace).List(ctx, metav1.ListOptions{LabelSelector: "keldock.io/environment=" + selection.EnvironmentID})
 	if err != nil {
 		return report, err
@@ -157,4 +160,31 @@ func (registrar *Registrar) Observe(ctx context.Context, selection compiler.Sele
 		report.Reason = "WaitingForPrune"
 	}
 	return report, nil
+}
+
+func constrainDependencyReadiness(definition v1.Application, components []v1.ComponentHealth) error {
+	order, err := definition.Order()
+	if err != nil {
+		return err
+	}
+	byName := map[string]*v1.ComponentHealth{}
+	for i := range components {
+		byName[components[i].Name] = &components[i]
+	}
+	for _, name := range order {
+		health := byName[name]
+		if health == nil || !health.Ready {
+			continue
+		}
+		for _, dependency := range definition.Components[name].DependsOn {
+			prerequisite := byName[dependency]
+			if prerequisite == nil || !prerequisite.Ready {
+				health.Ready = false
+				health.Reason = "DependencyNotReady"
+				health.Message = "Selected prerequisite " + dependency + " is not ready."
+				break
+			}
+		}
+	}
+	return nil
 }
