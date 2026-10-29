@@ -1,7 +1,7 @@
 # Tested profile and limits
 
 The candidate supports one organization, one existing cluster and a small trusted
-team. Release publication and an independent operator walkthrough are still pending.
+team. Release publication and completion of the fresh-target walkthrough are still pending.
 Use the [validation index](../../validation/README.md) for the evidence boundary.
 
 | Component                                   | Candidate pin                         |

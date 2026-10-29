@@ -1,6 +1,6 @@
 # M6 self-hosted alpha candidate
 
-Status: local developer acceptance passed, 2026-10-29. The independent human
+Status: local developer acceptance passed, 2026-10-29. Fresh-target assisted operator
 walkthrough, operational public security-reporting route and publication approval
 remain separate gates. No public release, production deployment or M6 cloud test is
 claimed. M5's approved AWS fixtures remain removed.
@@ -40,7 +40,7 @@ contains its matching PostgreSQL 18.4 clients.
 | MCP                       | Official Go SDK discovered ten tools. A populated retained allocation exposed safe backup/WAL/freshness evidence without private namespace/source/archive references. Cross-project read and revoked access were denied. Database mutation remains outside MCP authority.                                                     |
 | Browser                   | Resource inventory and Setup were reviewed in the built-in browser. Desktop light/dark, 390-pixel responsive layout, stale evidence, and opening/canceling a lifecycle dialog were checked. CSS viewport and scroll width were both 390 pixels. Review used a local developer preview; packaged HTTPS was checked separately. |
 | Regression acceptance     | Complete `task local:test` passed after the fixes: runtime 658.162 seconds, access 15.019 seconds, GitHub 9.535 seconds and cloud-contract fixtures 7.054 seconds. The original M3 application remained healthy at its original commit. These cloud tests are local contracts, not new AWS validation.                        |
-| Release/publication       | Local binaries, chart, dependency manifests, source archive, skills, image manifest and checksums are prepared by `task alpha:package` from clean committed source. Exact image/source identities and materialization checks are recorded with the generated kit; human walkthrough and publication remain gated.             |
+| Release/publication       | Local binaries, chart, dependency manifests, source archive, skills, image manifest and checksums are prepared by `task alpha:package` from clean committed source. Exact image/source identities and materialization checks are recorded with the generated kit; fresh-target walkthrough and publication remain gated.      |
 
 ## Measured core footprint
 
@@ -110,6 +110,7 @@ installation without fixture-specific domains or infrastructure.
 
 After developer acceptance, materialize a clean-source kit with `task alpha:package`
 and explicit immutable image references. Verify its `SHA256SUMS` and CLI version.
-A separate human must then complete the [walkthrough](../runtime/alpha/walkthrough.md).
+A fresh-target operator must then complete the [walkthrough](../runtime/alpha/walkthrough.md),
+manually or through explicitly delegated execution with assistance recorded.
 Publish only after explicit review; leave M6 in progress until its actual exit gates
 are satisfied.

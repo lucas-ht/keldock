@@ -1,15 +1,19 @@
-# Independent operator acceptance
+# Fresh-target operator acceptance
 
 The automated local fixtures are developer evidence. Before a published alpha,
-a separate human operator must complete this journey using only a matching kit
-and these guides, their own cluster, domain, GitHub App/repository, identities and
-supplied backup service. Do not reuse maintainer fixture credentials or addresses.
+complete this journey on a fresh target using only a matching kit and these guides,
+an operator-owned cluster, domain, GitHub App/repository, identities and supplied
+backup service. Do not depend on maintainer fixture credentials or addresses.
+
+The operator may execute it manually or explicitly delegate execution to an agent,
+retaining sign-in, credential creation and required access approvals. Record an
+agent-run journey as assisted acceptance. It does not establish independent human
+usability evidence, and an automated fixture rerun does not replace this journey.
 
 Record the kit version/source revision/checksum, target Kubernetes/storage/ingress,
-operator and date, commands, results, confusing instructions and required assistance.
+operator, executor and date, commands, results, confusing instructions and assistance.
 Keep tokens, connection strings, private configuration and customer data out of the
-report. Mark a step failed or assisted honestly; an automated rerun is not a human
-walkthrough.
+report. Mark each step failed, assisted or passed honestly.
 
 1. Verify kit checksums and source, then follow [installation](installation.md).
    Install core without CNPG or cloud controllers. Activate a local account,

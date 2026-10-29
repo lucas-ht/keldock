@@ -2,7 +2,7 @@
 
 Status: M6 candidate implementation. The [installation guide](../runtime/alpha/README.md)
 describes the packaged chart, local accounts, explicit enrollment, PostgreSQL and recovery.
-The independent operator walkthrough and release publication remain evidence gates.
+The fresh-target operator walkthrough and release publication remain evidence gates.
 
 ## Intended first installation
 

@@ -4,9 +4,17 @@
 
 Bring one existing Kubernetes 1.35 cluster, Traefik, dynamic persistent storage,
 an application domain, and a reachable canonical HTTPS origin. GitHub webhooks and
-CI runners must reach that origin. Supply its TLS Secret in the installation
-namespace. Use the tested versions in [support](support.md); do not silently adopt
+CI runners must reach that origin. For chart-managed ingress, supply its TLS Secret
+in the installation namespace. Use the tested versions in [support](support.md); do not silently adopt
 another controller version or transfer its ownership.
+
+For TLS terminated by an operator-managed reverse proxy, set `ingress.enabled` to
+`false` in the prepared values overlay. Forward the canonical origin to the console
+Service on port 3800 over a reviewed private or loopback path; the API remains private.
+Preserve authorization, Origin and standard MCP headers through that proxy. Run
+`preflight --check-endpoint` and verify reachability from the registrar's network.
+The endpoint check verifies public HTTPS trust; it does not certify the proxy's
+internal transport or provide a tunnel uptime guarantee.
 
 Use your own GitHub App and repository when connecting delivery. Keldock does not
 need the maintainer's account, tunnel, cloud account, credentials or private services.
