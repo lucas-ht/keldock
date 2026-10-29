@@ -50,5 +50,5 @@ for (let attempt = 0; attempt < 20; attempt++) {
 }
 if (!ready) throw new Error("Isolated recovery registry is unavailable");
 process.stdout.write(
-  "Target: owned empty recovery registry 127.0.0.1:5012; no source-registry changes or deletions.\n",
+  "Target: owned isolated recovery registry 127.0.0.1:5012; no source-registry changes or deletions.\n",
 );

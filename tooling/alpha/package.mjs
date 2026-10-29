@@ -7,7 +7,7 @@ import {
   readdirSync,
   statSync,
 } from "node:fs";
-import { resolve, relative } from "node:path";
+import { resolve, relative, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { parse } from "yaml";
@@ -47,6 +47,7 @@ const directory = resolve(
   option("--directory") ||
     `.local/m6/release-kit/${chart.version}-${revision.slice(0, 12)}`,
 );
+mkdirSync(dirname(directory), { recursive: true, mode: 0o700 });
 mkdirSync(directory, { mode: 0o700 });
 const write = (name, value) => writeFileSync(resolve(directory, name), value);
 write(
@@ -96,9 +97,8 @@ cpSync(
   "internal/cloud/crossplane/controllers.lock.json",
   resolve(dependencies, "controllers.lock.json"),
 );
-for (const path of ["LICENSE", "skills", "docs/runtime/alpha"]) {
-  const target = path === "docs/runtime/alpha" ? "guide" : path;
-  cpSync(path, resolve(directory, target), { recursive: true });
+for (const path of ["LICENSE", "skills"]) {
+  cpSync(path, resolve(directory, path), { recursive: true });
 }
 const source = execFileSync(
   "git",
@@ -106,6 +106,14 @@ const source = execFileSync(
   { cwd: root, maxBuffer: 64 * 1024 * 1024 },
 );
 write(`keldock-${chart.version}-source.tar.gz`, gzipSync(source));
+const sourceDirectory = resolve(directory, "source");
+mkdirSync(sourceDirectory);
+run("tar", ["-xf", "-", "-C", sourceDirectory], { input: source });
+const guide = `source/keldock-${chart.version}/docs/runtime/alpha`;
+write(
+  "README.md",
+  `# Keldock ${chart.version} candidate\n\nSource revision: ${revision}. This kit is unpublished; its image addresses are the reviewed candidate's addresses, not public availability.\n\n- [Install and onboard](${guide}/installation.md)\n- [Supported profile and measured limits](${guide}/support.md)\n- [PostgreSQL and backups](${guide}/postgresql.md)\n- [Control-plane recovery and retention](${guide}/recovery.md)\n- [Independent human operator walkthrough](${guide}/walkthrough.md)\n\nVerify SHA256SUMS before use. The complete extracted source keeps guide links and the thin vendorable Action available offline. Native recovery requires PostgreSQL 18 clients on PATH; they are included in the runtime image. The bundled CLI targets are cross-builds; consult the tested architecture limits.\n`,
+);
 const members = [];
 function walk(path) {
   for (const entry of readdirSync(path, { withFileTypes: true })) {
