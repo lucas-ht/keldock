@@ -5,6 +5,12 @@ The experimental M6 surface uses MCP 2026-07-28, the Go SDK v1.8.0 and server ve
 require no paid Keldock account or embedded model provider. An assistant host may have
 its own account requirements.
 
+Modern HTTP clients carry protocol, identity and capabilities on each request,
+with matching `MCP-Protocol-Version`, `Mcp-Method` and (for tool calls) `Mcp-Name`
+headers. They use `server/discover` instead of a legacy `initialize` handshake.
+Browser preflight permits these standard headers. See the supported revision's
+[request metadata contract](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#request-metadata).
+
 ## Connect with bounded authority
 
 Enable the endpoint and register/connect a public client as described in
