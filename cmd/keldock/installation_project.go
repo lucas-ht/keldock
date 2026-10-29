@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -31,9 +32,28 @@ func installationProject(ctx context.Context, args []string) error {
 	if err := readSettings(*file, &project); err != nil {
 		return err
 	}
+	requested, err := json.Marshal(project)
+	if err != nil {
+		return err
+	}
+	newProject := true
 	for _, existing := range settings.Projects {
 		if existing.ID == project.ID || existing.RepositoryID == project.RepositoryID {
-			return fmt.Errorf("project or repository already configured; review the existing policy explicitly")
+			configured, err := json.Marshal(existing)
+			if err != nil {
+				return err
+			}
+			if !*postgresql || !bytes.Equal(configured, requested) {
+				return fmt.Errorf("project or repository already configured; PostgreSQL delegation requires its unchanged repository policy")
+			}
+			newProject = false
+		}
+	}
+	if *postgresql {
+		for _, policy := range settings.Databases {
+			if policy.ProjectID == project.ID {
+				return fmt.Errorf("PostgreSQL already configured for this project; review its existing policy explicitly")
+			}
 		}
 	}
 	policy, err := settings.policy(project)
@@ -51,7 +71,9 @@ func installationProject(ctx context.Context, args []string) error {
 	if err := json.Unmarshal(data, &values); err != nil {
 		return err
 	}
-	settings.Projects = append(settings.Projects, project)
+	if newProject {
+		settings.Projects = append(settings.Projects, project)
+	}
 	if *postgresql {
 		storage, ok := values["storageClass"].(string)
 		if !ok || storage == "" {

@@ -11,8 +11,12 @@ Inventory supplied CNPG 1.30.1, cert-manager and Barman 0.15.1 against the kit p
 or review and explicitly install the matching dependency manifests. Do not give
 the public API Kubernetes credentials. Add `--postgresql` to `installation project`
 to prepare an approved development profile, four retained allocation slots, the
-separate database-agent configuration and its chart toggle. Review the generated
-profile/storage size before applying the private Secret and upgrading the chart.
+separate database-agent configuration and its chart toggle. For an existing
+project, rerun the command with its **unchanged** repository policy file and
+`--postgresql`; it adds no duplicate project and cannot change its repository,
+owner, workflow, preview policy or signing keys. An already delegated database
+policy is never overwritten by this command. Review the generated profile/storage
+size before applying the private Secret and upgrading the chart.
 
 Enroll the database process independently through a project's **Resources** page:
 `keldock enroll --database --config /runtime/private/database-agent.json --cluster
