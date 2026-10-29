@@ -20,7 +20,10 @@ report. Mark each step failed, assisted or passed honestly.
    verify administrator recovery and enroll the registrar over canonical HTTPS.
 2. Connect a scoped GitHub App and project policy. Submit the multi-service example
    from customer CI, inspect the receipt and wait for fresh matching-generation
-   health. Open/update/close a preview without authoring Flux manifests.
+   health. For the stateless acceptance workload, the matching kit includes
+   [its definition](../../../examples/multi-service/keldock.yaml) and the small
+   [workload source/Dockerfile](../../../tooling/fixtures/workload/); use real CI
+   admission rather than the fixture harness. Open/update/close a preview without authoring Flux manifests.
 3. Connect an MCP client with read consent and install both bundled skills. Inspect
    deployment/resource state; verify an unauthorized project and a mutation without
    operation consent are denied.

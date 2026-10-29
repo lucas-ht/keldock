@@ -2,17 +2,23 @@
 
 ## Current status
 
-Keldock is a private development repository with no supported runtime release. No
-production security, tenant-isolation, availability, or recovery guarantee is made by
-the bootstrap. Supported versions and an operational reporting route must be documented
-before the first public release.
+Keldock's 0.6.0-alpha.1 candidate passed developer and assisted fresh-target
+acceptance. It remains unpublished and limited to the documented development
+profile. No production security, hostile-tenant isolation, availability or complete
+disaster-recovery guarantee is made. There is no maintained public release yet.
 
 ## Reporting
 
-Do not put credentials, exploit details, or customer data in public issues. Use GitHub
-private vulnerability reporting if enabled for this repository. Otherwise contact the
-maintainer through their GitHub profile to arrange a private reporting channel before
-sharing sensitive details. This document does not claim that private reporting is enabled.
+Do not put credentials, exploit details or customer data in public issues. The
+planned reporting route is [GitHub private vulnerability reporting](https://github.com/lucas-ht/keldock/security/advisories/new).
+It is not currently enabled for this private candidate. Do not send a report until
+that route is confirmed operational.
+
+Before public alpha publication, the maintainer must enable the feature, verify
+the reporting form and confirm repository security-alert notifications. GitHub
+documents this feature for public repositories and makes notifications dependent
+on the maintainer's watch settings; see [its reporting configuration guide](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
+No private email address, response SLA or paid reporting service is implied.
 
 ## Development boundaries
 

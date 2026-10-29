@@ -1,8 +1,9 @@
 # Keldock architecture
 
-Updated 2026-10-28. Accepted design with an experimental core and an unpublished M6
+Updated 2026-10-29. Accepted design with an experimental core and an unpublished M6
 [self-hosted candidate](runtime/alpha/README.md). Current code and
-local evidence are recorded in the [runtime guide](runtime/local-development.md);
+local evidence are recorded in the [runtime guide](runtime/local-development.md) and
+[fresh-target assisted acceptance](validation/m6-fresh-target.md);
 unimplemented product and expansion gates remain explicit in the implementation plan.
 
 ## Product contract

@@ -40,9 +40,10 @@ M6 adds an unpublished [self-hosted alpha candidate](docs/runtime/alpha/README.m
 packaged control plane and independent agents, PostgreSQL allocation, supplied native
 backups/isolated restores, local onboarding, resource inspection through MCP, and fenced
 control-plane snapshot recovery. Core delivery and a measured 2 CPU / 4 GiB development
-floor have local acceptance evidence. The independent operator walkthrough, final
-release kit and reviewed publication remain exit gates. This is not a
-production-validation claim.
+floor have local acceptance evidence. A [fresh-target assisted walkthrough](docs/validation/m6-fresh-target.md)
+also passed real CI, data recovery, retention and supplied-dependency reinstall.
+Operational public reporting and reviewed publication remain exit gates.
+This is not a production-validation claim.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.

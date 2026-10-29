@@ -1,7 +1,8 @@
 # Tested profile and limits
 
 The candidate supports one organization, one existing cluster and a small trusted
-team. Release publication and completion of the fresh-target walkthrough are still pending.
+team. The fresh-target assisted walkthrough passed; public reporting and release publication
+remain pending.
 Use the [validation index](../../validation/README.md) for the evidence boundary.
 
 | Component                                   | Candidate pin                         |
@@ -29,7 +30,9 @@ PostgreSQL, bundle registry and an active five-component synthetic application.
 Four samples over 30 seconds peaked at 1,756 MiB; its cgroup lifetime peak was
 2,200 MiB. This is the tested development floor, not a production load benchmark
 or a promise that the optional PostgreSQL/backup profile fits the same budget.
-Chart requests and container limits are configuration, not measurements.
+Chart requests and container limits are configuration, not measurements. The separate
+fresh-target database/recovery journey used 4 CPUs/6 GiB and retained restore copies;
+this is a tested target, not a measured production minimum.
 Reserve persistent capacity
 for retained data, registry graphs and restore copies; repeated previews do not free
 retained database quota or disk automatically.

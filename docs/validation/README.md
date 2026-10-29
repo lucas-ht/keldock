@@ -100,5 +100,7 @@ profile; M6 still owns external-operator alpha installation and database allocat
 
 [M6 evidence](m6-self-hosted-alpha.md) records independent core packaging, PostgreSQL
 allocation/backup/isolated restore, fenced control-plane recovery, retention,
-MCP/browser checks and measured development footprint. Its remaining human and
-publication gates are explicit; it does not establish a public supported release.
+MCP/browser checks and measured development footprint. The separate
+[fresh-target assisted journey](m6-fresh-target.md) passed real customer CI, data
+recovery and retained-resource uninstall/reinstall. Public security reporting and
+publication remain explicit gates; no public supported release is claimed.

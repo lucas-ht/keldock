@@ -5,8 +5,9 @@ worker share a pod with the console; the registrar and optional PostgreSQL
 provisioner have separate enrolled identities. No AWS, Crossplane, enterprise SSO,
 Vault, Temporal, paid Keldock account or model provider is required.
 
-This is an **unpublished candidate**. The fresh-target operator walkthrough and
-release publication remain explicit gates in the [implementation plan](../../implementation-plan.md).
+This is an **unpublished candidate**. The [fresh-target assisted walkthrough](../../validation/m6-fresh-target.md)
+passed; operational public security reporting and release publication remain gates
+in the [implementation plan](../../implementation-plan.md).
 Use the matching source, chart, image digests and checksums from one reviewed kit.
 
 - [Install and onboard](installation.md), including supplied dependencies.
