@@ -1,6 +1,6 @@
 # Contributing to Keldock
 
-Keldock is at repository-bootstrap stage. Prefer small changes that advance a complete
+Keldock has an unpublished self-hosted alpha candidate. Prefer small changes that advance a complete
 user workflow. Design documents are requirements, not claims of implemented behavior.
 Start with the [architecture](../docs/architecture.md) and
 [implementation plan](../docs/implementation-plan.md).
@@ -25,8 +25,15 @@ pnpm check
 Run `task format` before committing. `task doctor` includes formatting, Markdown
 syntax/local links, repository/CI invariants, workflow lint, validation-tool tests,
 Go vet, race-enabled Go tests and golangci-lint.
+It also validates core/supplied/database chart profiles, retained PVCs, public-process
+authority, immutable image inputs and the standalone acceptance-example modules.
 Runtime changes also require `task local:test`; see the
 [disposable target and evidence](../docs/runtime/local-development.md).
+PostgreSQL/recovery changes additionally require `task local:alpha:postgresql:test`
+with PostgreSQL 18 client tools on PATH. This uses a separate owned `keldock-m6`
+cluster and retains synthetic databases/archives for inspection. Packaged core
+acceptance uses the independent `keldock-m6-core` cluster; see the
+[alpha guide](../docs/runtime/alpha/README.md).
 
 ## Changes
 

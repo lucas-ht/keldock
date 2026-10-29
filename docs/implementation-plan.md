@@ -27,16 +27,16 @@ generated-manifest writeback. A one-container demonstration is insufficient.
 
 ## Milestones
 
-| Milestone | Deliverable                                             | Dependencies               | Status                                    |
-| --------- | ------------------------------------------------------- | -------------------------- | ----------------------------------------- |
-| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap             |
-| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain  |
-| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                               |
-| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Implemented; development profile          |
-| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Implemented; development profile          |
-| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Implemented; optional development profile |
-| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | Pending                                   |
-| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                     |
+| Milestone | Deliverable                                             | Dependencies               | Status                                                          |
+| --------- | ------------------------------------------------------- | -------------------------- | --------------------------------------------------------------- |
+| M0        | Repository, design and executable repository checks     | None                       | Implemented by this bootstrap                                   |
+| M1        | Core contracts and compatibility spikes                 | M0                         | Core implemented; extension gates remain                        |
+| M2        | Durable API/agent, auth, console and MCP reads          | Core M1                    | Implemented                                                     |
+| M3        | GitHub integration, GHCR, thin Action and feedback      | M2                         | Implemented; development profile                                |
+| M4        | Stateless previews, bounded MCP writes and skills       | M3                         | Implemented; development profile                                |
+| M5        | Optional AWS resource automation                        | Relevant M1 evidence, M4   | Implemented; optional development profile                       |
+| M6        | PostgreSQL capability, onboarding and self-hosted alpha | M4, PostgreSQL M1 evidence | In progress; independent operator and publication gates pending |
+| M7–M10    | More clusters/modules, hosted control plane and hosting | Separate evidence gates    | Later                                                           |
 
 Each implemented milestone needs a usable status/failure surface, cancellation semantics,
 and updated evidence. Do not defer all operational work to the final packaging milestone.
@@ -224,6 +224,10 @@ stack; PostgreSQL allocation, general installation and cloud MCP consent remain 
 gates. See the [extension acceptance](product/roadmap.md#m5-optional-aws-resources).
 
 ## M6: PostgreSQL and external-operator alpha
+
+Implementation: the [candidate guide](runtime/alpha/README.md) documents packaged
+installation, PostgreSQL allocation, scoped backups and fenced recovery. The
+independent walkthrough and reviewed publication remain required exit gates.
 
 1. Package working all-in-one control-plane/agent and supplied-dependency profiles,
    plus explicit optional installation of the tested CNPG integration.

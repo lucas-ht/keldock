@@ -95,3 +95,10 @@ Keep secrets, real customer identifiers and raw runtime logs out of Git.
 identity/permission boundaries, adoption, DNS/TLS, backup/WAL/restore, upgrade and
 retention proofs, UI checks and final fixture cleanup. This is an optional development
 profile; M6 still owns external-operator alpha installation and database allocation.
+
+## Self-hosted alpha candidate
+
+[M6 evidence](m6-self-hosted-alpha.md) records independent core packaging, PostgreSQL
+allocation/backup/isolated restore, fenced control-plane recovery, retention,
+MCP/browser checks and measured development footprint. Its remaining human and
+publication gates are explicit; it does not establish a public supported release.

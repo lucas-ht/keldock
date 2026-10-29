@@ -36,9 +36,13 @@ released-writer adoption and supplied-database backup/restore. Its
 retention, upgrade, recovery and scoped fixture cleanup. Core delivery requires none
 of these controllers or an AWS account.
 
-M2–M5 implement the development profile. Other registries, persistent application data,
-general installation and hosted operation retain their later milestone gates. This is
-not a packaged self-hosted alpha or a production-validation claim.
+M6 adds an unpublished [self-hosted alpha candidate](docs/runtime/alpha/README.md):
+packaged control plane and independent agents, PostgreSQL allocation, supplied native
+backups/isolated restores, local onboarding, resource inspection through MCP, and fenced
+control-plane snapshot recovery. Core delivery and a measured 2 CPU / 4 GiB development
+floor have local acceptance evidence. The independent operator walkthrough, final
+release kit and reviewed publication remain exit gates. This is not a
+production-validation claim.
 
 The first release targets one organization and cluster, GitHub delivery, multi-service
 previews, optional PostgreSQL with tested recovery, and a small MCP/skills surface.
@@ -69,7 +73,7 @@ workflow syntax and the console's TypeScript/production build. It does not valid
 Kubernetes deployment or cloud access.
 The disposable developer environment is available through `task local:test`; see
 [process commands and private configuration](docs/runtime/processes.md).
-There is no general runtime installer yet.
+The candidate chart and operator CLI are described in the [installation guide](docs/runtime/alpha/installation.md).
 
 For the local console, run `task local:console:api` and `task local:console` in separate
 terminals, then open `http://127.0.0.1:3800`. The private fixture login and exact local

@@ -1,6 +1,7 @@
 # Keldock architecture
 
-Updated 2026-10-28. Accepted design with an experimental core runtime. Current code and
+Updated 2026-10-28. Accepted design with an experimental core and an unpublished M6
+[self-hosted candidate](runtime/alpha/README.md). Current code and
 local evidence are recorded in the [runtime guide](runtime/local-development.md);
 unimplemented product and expansion gates remain explicit in the implementation plan.
 
@@ -174,3 +175,18 @@ does not prove service isolation, availability, billing, or support readiness.
 See [onboarding](architecture/onboarding.md),
 [security and operations](architecture/security-and-operations.md),
 [implementation plan](implementation-plan.md), and [primary references](references.md).
+
+## M6 data and recovery boundary
+
+The packaged public API/worker and console have no Kubernetes credentials. Enrolled
+workload registration and PostgreSQL provisioning use separate processes, ServiceAccounts,
+credentials and RPC routes. Application declarations can request an approved PostgreSQL
+profile and select consumers; they cannot select namespace, source UID, Secret or backup
+identity. Allocation state and data survive preview cleanup.
+
+Control-plane snapshots capture database state, referenced private files, bundle graphs
+and admitted workload image graphs. Restoration targets an empty independent database
+and stays fenced until surviving workload generations, deletion tombstones and retained
+database identities agree. Recovered browser/MCP/agent credentials are revoked. A native
+PostgreSQL restore creates a separate unbound cluster with a read-only archive identity;
+it never replaces the source or automatically cuts application traffic over.

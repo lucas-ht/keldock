@@ -1,6 +1,7 @@
 # Modular capabilities
 
-Status: accepted design; no module installer, schemas or resource controller exists yet.
+Status: PostgreSQL allocation/bindings and the optional AWS profile have concrete runtime contracts.
+The general module catalogue, controller lifecycle API and extension SDK remain design gates.
 
 ## Four separate responsibilities
 
